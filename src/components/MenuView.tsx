@@ -154,14 +154,27 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
         <ServiceTypeTabs availableServices={availableServices} />
 
         {/* Delivery info */}
-        {serviceType === "DELIVERY" && entity.amountmin > 0 && (
-          <Box sx={{ pt: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
-            <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-            <Typography variant="caption" color="text.secondary">
-              Envío ${entity.amountmin.toLocaleString("es-AR")}
-            </Typography>
-          </Box>
-        )}
+        {serviceType === "DELIVERY" && (() => {
+          const zones = entity.entitydeliveryzones?.filter((z) => z.status === "ACTIVE") || [];
+          if (zones.length === 0) return null;
+          const costs = zones.map((z) => z.shippingcost ?? 0);
+          const min = Math.min(...costs);
+          const max = Math.max(...costs);
+          const allSame = min === max;
+          const label = min === 0
+            ? (allSame ? "Envío gratis" : "Envío desde gratis")
+            : (allSame
+              ? `Envío $${min.toLocaleString("es-AR")}`
+              : `Envío desde $${min.toLocaleString("es-AR")}`);
+          return (
+            <Box sx={{ pt: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+              <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+              <Typography variant="caption" color="text.secondary">
+                {label}
+              </Typography>
+            </Box>
+          );
+        })()}
       </Box>
 
       {/* Category chips */}

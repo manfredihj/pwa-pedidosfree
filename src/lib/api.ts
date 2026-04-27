@@ -15,8 +15,10 @@ export interface ApiResponse<T> {
 
 export interface EntityDeliveryZone {
   identitydeliveryzone: number;
+  description: string;
   polygondrawarray: string; // "lat,lng;lat,lng;..."
-  shippingcost?: number;
+  shippingcost: number;
+  status: string;
   [key: string]: unknown;
 }
 

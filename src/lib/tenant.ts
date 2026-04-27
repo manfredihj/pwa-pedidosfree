@@ -7,7 +7,7 @@ export interface Tenant {
 }
 
 // Hardcoded for now — will be resolved dynamically per subdomain later
-const GROUP_ID = 20;
+const GROUP_ID = 108;
 
 export async function getTenant(): Promise<Tenant> {
   const headersList = await headers();
