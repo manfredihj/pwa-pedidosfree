@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Box from "@mui/material/Box";
 import AppHeader from "@/components/AppHeader";
 import BottomNav, { type TabValue } from "@/components/BottomNav";
@@ -24,9 +24,15 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showCart, setShowCart] = useState(false);
 
-  const handleCartClick = useCallback(() => {
-    setShowCart(true);
+  // Push browser history state when navigating to sub-screens
+  const pushHistory = useCallback((screen: string) => {
+    window.history.pushState({ screen }, "");
   }, []);
+
+  const handleCartClick = useCallback(() => {
+    pushHistory("cart");
+    setShowCart(true);
+  }, [pushHistory]);
 
   const handleCartBack = useCallback(() => {
     setShowCart(false);
@@ -38,13 +44,37 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
   }, []);
 
   const handleCheckout = useCallback(() => {
+    pushHistory("checkout");
     setShowCart(false);
     setShowCheckout(true);
-  }, []);
+  }, [pushHistory]);
 
   const handleCheckoutBack = useCallback(() => {
     setShowCheckout(false);
   }, []);
+
+  const handleTabChange = useCallback((tab: TabValue) => {
+    if (tab !== "menu") {
+      pushHistory(tab);
+    }
+    setActiveTab(tab);
+  }, [pushHistory]);
+
+  // Listen for browser back button (Android back)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (showCheckout) {
+        setShowCheckout(false);
+      } else if (showCart) {
+        setShowCart(false);
+      } else if (activeTab !== "menu") {
+        setActiveTab("menu");
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [showCheckout, showCart, activeTab]);
 
   return (
     <>
@@ -78,7 +108,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
       {!showCheckout && !showCart && activeTab === "menu" && (
         <FloatingCartBar onClick={handleCartClick} />
       )}
-      {!showCheckout && !showCart && <BottomNav value={activeTab} onChange={setActiveTab} />}
+      {!showCheckout && !showCart && <BottomNav value={activeTab} onChange={handleTabChange} />}
     </>
   );
 }
