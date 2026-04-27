@@ -1,13 +1,20 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import ButtonBase from "@mui/material/ButtonBase";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
-import { buildImageProductThumbnail, type Section, type Product, type GroupEntity } from "@/lib/api";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { buildImageProductThumbnail, getEntitySchedulesWeek, type Section, type Product, type GroupEntity, type ScheduleWeekItem } from "@/lib/api";
 import ProductDetail, { type CartItem } from "@/components/ProductDetail";
 import ServiceTypeTabs from "@/components/ServiceTypeTabs";
 import { useCart } from "@/lib/CartContext";
@@ -38,54 +45,124 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     addOrderDetail(item.product, item.quantity, item.notes, item.orderdetailgroups);
   }, [addOrderDetail]);
 
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [weekSchedule, setWeekSchedule] = useState<ScheduleWeekItem[] | null>(null);
+
   const headerImage = entity.entityimages.find((img) => img.keyname === "Header-mobile");
   const logoImage = entity.entityimages.find((img) => img.keyname === "Logo");
+
+  const infoMapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!infoOpen) return;
+    const g = (window as any).google;
+    if (!g) return;
+    const timer = setTimeout(() => {
+      if (!infoMapRef.current) return;
+      const lat = parseFloat(entity.latitude);
+      const lng = parseFloat(entity.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const center = { lat, lng };
+      const map = new g.maps.Map(infoMapRef.current, {
+        center,
+        zoom: 15,
+        disableDefaultUI: true,
+        gestureHandling: "none",
+        draggable: false,
+      });
+      new g.maps.Marker({ position: center, map });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [infoOpen, entity.latitude, entity.longitude]);
+
+  const handleOpenInfo = () => {
+    setInfoOpen(true);
+    if (!weekSchedule) {
+      getEntitySchedulesWeek(entity.identity)
+        .then(setWeekSchedule)
+        .catch(() => setWeekSchedule([]));
+    }
+  };
 
   return (
     <>
       {/* Entity header image */}
       {headerImage && (
-        <Box
-          component="img"
-          src={headerImage.path}
-          alt={entity.name}
-          sx={{ width: "100%", height: 180, objectFit: "cover" }}
-        />
-      )}
-
-      {/* Logo + Entity name */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, pt: 2, pb: 1 }}>
-        {logoImage && (
+        <Box sx={{ position: "relative", height: 140 }}>
           <Box
             component="img"
-            src={logoImage.path}
+            src={headerImage.path}
             alt={entity.name}
+            sx={{ width: "100%", height: 140, objectFit: "cover" }}
+          />
+          <Box
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              objectFit: "cover",
-              boxShadow: 1,
+              position: "absolute",
+              inset: 0,
+              bgcolor: "rgba(0,0,0,0.35)",
             }}
           />
-        )}
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          {entity.name}
-        </Typography>
-      </Box>
-
-      {/* Service type tabs */}
-      <ServiceTypeTabs availableServices={availableServices} />
-
-      {/* Delivery info */}
-      {serviceType === "DELIVERY" && entity.amountmin > 0 && (
-        <Box sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
-          <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <Typography variant="caption" color="text.secondary">
-            Envío ${entity.amountmin.toLocaleString("es-AR")}
-          </Typography>
         </Box>
       )}
+
+      {/* Entity info card */}
+      <Box
+        sx={{
+          mx: 2,
+          mt: -3,
+          mb: 1,
+          px: 2,
+          pt: 2,
+          pb: 1.5,
+          bgcolor: "background.paper",
+          borderRadius: 3,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Logo + Entity name + info */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
+          {logoImage && (
+            <Box
+              component="img"
+              src={logoImage.path}
+              alt={entity.name}
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                objectFit: "cover",
+                boxShadow: 1,
+              }}
+            />
+          )}
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              {entity.name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {entity.street} {entity.streetnumber}
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={handleOpenInfo} color="primary">
+            <InfoOutlinedIcon />
+          </IconButton>
+        </Box>
+
+        {/* Service type tabs */}
+        <ServiceTypeTabs availableServices={availableServices} />
+
+        {/* Delivery info */}
+        {serviceType === "DELIVERY" && entity.amountmin > 0 && (
+          <Box sx={{ pt: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+            <LocalShippingOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography variant="caption" color="text.secondary">
+              Envío ${entity.amountmin.toLocaleString("es-AR")}
+            </Typography>
+          </Box>
+        )}
+      </Box>
 
       {/* Category chips */}
       <Box
@@ -230,6 +307,82 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
           onAddToCart={handleAddToCart}
         />
       )}
+
+      {/* Entity info modal */}
+      <Dialog open={infoOpen} onClose={() => setInfoOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pr: 1, fontWeight: 700 }}>
+          {entity.name}
+          <IconButton onClick={() => setInfoOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {/* Address */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            {entity.street} {entity.streetnumber}
+          </Typography>
+
+          {/* Map */}
+          <Box
+            ref={infoMapRef}
+            sx={{
+              width: "100%",
+              height: 160,
+              borderRadius: 2,
+              overflow: "hidden",
+              mb: 2,
+            }}
+          />
+
+          {/* Contacts */}
+          {entity.entitycontacts?.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Contacto
+              </Typography>
+              {entity.entitycontacts.map((c, i) => (
+                <Typography key={i} variant="body2" color="text.secondary" sx={{ mb: 0.3 }}>
+                  {c.contacttype.name === "TELEPHONE" ? "Tel: " : ""}{c.value}
+                </Typography>
+              ))}
+            </Box>
+          )}
+
+          {/* Schedules */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, display: "flex", alignItems: "center", gap: 0.5 }}>
+            <AccessTimeIcon sx={{ fontSize: 18 }} /> Horarios de atención
+          </Typography>
+          {weekSchedule ? (
+            weekSchedule.length > 0 ? (
+              weekSchedule.map((s, i) => (
+                <Box key={i} sx={{ display: "flex", justifyContent: "space-between", py: 0.3 }}>
+                  <Typography variant="body2" sx={{ textTransform: "capitalize" }}>
+                    {s.name_of_day.toLowerCase()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {s.start_time_format} - {s.end_time_format}
+                  </Typography>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="caption" color="text.secondary">
+                Sin horarios disponibles
+              </Typography>
+            )
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              Cargando horarios...
+            </Typography>
+          )}
+
+          {/* Schedule status message */}
+          {entity.scheduledata?.message && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {entity.scheduledata.message}
+            </Typography>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

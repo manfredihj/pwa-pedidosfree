@@ -3,11 +3,11 @@
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import Paper from "@mui/material/Paper";
 
-export type TabValue = "menu" | "carrito" | "pedidos";
+export type TabValue = "menu" | "pedidos" | "perfil";
 
 interface BottomNavProps {
   value: TabValue;
@@ -23,8 +23,8 @@ export default function BottomNav({ value, onChange }: BottomNavProps) {
         showLabels
       >
         <BottomNavigationAction value="menu" label="Menu" icon={<RestaurantMenuIcon />} />
-        <BottomNavigationAction value="carrito" label="Carrito" icon={<ShoppingCartIcon />} />
         <BottomNavigationAction value="pedidos" label="Pedidos" icon={<ReceiptLongIcon />} />
+        <BottomNavigationAction value="perfil" label="Perfil" icon={<PersonOutlineIcon />} />
       </BottomNavigation>
     </Paper>
   );

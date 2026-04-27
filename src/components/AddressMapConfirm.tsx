@@ -112,20 +112,20 @@ export default function AddressMapConfirm({ address, entityDeliveryZones, onConf
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", bgcolor: "background.paper" }}>
-      {/* Back button over map */}
-      <Box sx={{ position: "absolute", top: 12, left: 12, zIndex: 10 }}>
-        <IconButton
-          onClick={onBack}
-          sx={{ bgcolor: "background.paper", boxShadow: 2, "&:hover": { bgcolor: "grey.100" } }}
-        >
+      {/* Header */}
+      <Box sx={{ px: 1, py: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+        <IconButton onClick={onBack} edge="start">
           <ArrowBackIcon />
         </IconButton>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          Ubicación de entrega
+        </Typography>
       </Box>
 
       {/* Map */}
       <Box
         ref={mapRef}
-        sx={{ flex: 1, minHeight: 0, position: "relative" }}
+        sx={{ height: 280, flexShrink: 0 }}
       />
 
       {/* Tip or warning banner */}

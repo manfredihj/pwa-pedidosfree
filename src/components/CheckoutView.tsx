@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -61,6 +62,21 @@ export default function CheckoutView({ entityDeliveryZones, onBack }: CheckoutVi
         </Typography>
       </Box>
       <Divider />
+
+      {/* Takeaway notice */}
+      {!isDelivery && (
+        <Alert
+          severity="info"
+          sx={{ mx: 2, mt: 2, borderRadius: 2 }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Pedido para retirar
+          </Typography>
+          <Typography variant="caption">
+            Acercate al local a buscar tu pedido.
+          </Typography>
+        </Alert>
+      )}
 
       {/* Service type info */}
       <Box sx={{ px: 2, py: 2, display: "flex", alignItems: "center", gap: 1.5 }}>

@@ -20,6 +20,29 @@ export interface EntityDeliveryZone {
   [key: string]: unknown;
 }
 
+export interface EntityDiscount {
+  identitydiscount: number;
+  description: string;
+  percentage: number;
+  amountmin: number | null;
+  markpromoas: "EXCLUSIVE" | "NO_EXCLUSIVE";
+  discounttype: { code: "PERC_CART" | "PERMANENT_CART" | "PERC_ITEM"; [key: string]: unknown };
+  conditionspayments: string | null; // "ALL" or "CASH;CARD;..." separated by ;
+  conditionstypeorder: string | null; // "ALL" or "DELIVERY;TAKE-AWAY"
+  conditionscustomers: string | null;
+  conditionsitems: string | null; // "ALL" or product ids separated by ;
+  conditionstime: string | null; // "ALL" or schedule ids separated by ;
+  [key: string]: unknown;
+}
+
+export interface EntityContact {
+  value: string;
+  contacttype: {
+    idcontacttype: number;
+    name: string; // "TELEPHONE", "WHATSAPP", "EMAIL", etc.
+  };
+}
+
 export interface GroupEntity {
   identity: number;
   name: string;
@@ -33,6 +56,8 @@ export interface GroupEntity {
   modemaintenance: boolean;
   maintenancemessage: string;
   entitydeliveryzones: EntityDeliveryZone[];
+  entitycontacts: EntityContact[];
+  entitydiscounts: EntityDiscount[];
   scheduledata: {
     status: { isopentoday: boolean; isopen: boolean; closefinished: boolean };
     message: string;
@@ -281,6 +306,41 @@ export async function getOrderDetails(
   const { data } = await api.get<ApiResponse<OrderItem[]>>(`/orders/${idorder}/details`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  return data.data;
+}
+
+// --- Schedules ---
+
+export interface ScheduleItem {
+  identityschedule: number;
+  description: string;
+  asap: number;
+}
+
+export interface ScheduleData {
+  status: { isopentoday: boolean; isopen: boolean; closefinished: boolean };
+  schedules: Record<string, ScheduleItem[]>;
+  message: string;
+  messagesecondary: string;
+}
+
+export async function getEntityScheduleStatus(entityId: number): Promise<ScheduleData> {
+  const { data } = await api.get<ApiResponse<ScheduleData>>(`/entities/${entityId}/schedulesstatus`);
+  return data.data;
+}
+
+export interface ScheduleWeekItem {
+  end_time_format: string;
+  start_time_format: string;
+  name_of_day: string;
+  identityschedule: number;
+  dayofweek: number;
+  finishnextday: boolean;
+  ordersecuencial: number;
+}
+
+export async function getEntitySchedulesWeek(entityId: number): Promise<ScheduleWeekItem[]> {
+  const { data } = await api.get<ApiResponse<ScheduleWeekItem[]>>(`/entities/${entityId}/schedulesweek`);
   return data.data;
 }
 
