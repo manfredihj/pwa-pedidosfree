@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
-import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import theme from "@/lib/theme";
-import Providers from "@/components/Providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
@@ -41,11 +38,9 @@ export default function RootLayout({
       </head>
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Providers>{children}</Providers>
-            <ServiceWorkerRegister />
-          </ThemeProvider>
+          <CssBaseline />
+          {children}
+          <ServiceWorkerRegister />
         </AppRouterCacheProvider>
       </body>
     </html>

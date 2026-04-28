@@ -109,7 +109,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
       <Box
         sx={{
           mx: 2,
-          mt: -3,
+          mt: headerImage ? -3 : 2,
           mb: 1,
           px: 2,
           pt: 2,

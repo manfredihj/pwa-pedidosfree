@@ -1,35 +1,38 @@
 "use client";
 
-import { createTheme } from "@mui/material/styles";
+import { createTheme, type Theme } from "@mui/material/styles";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#d32f2f",
+export function createAppTheme(primaryColor = "#d32f2f", secondaryColor = "#ff6659"): Theme {
+  return createTheme({
+    palette: {
+      primary: {
+        main: primaryColor,
+      },
+      secondary: {
+        main: secondaryColor,
+      },
+      background: {
+        default: "#fafafa",
+      },
     },
-    secondary: {
-      main: "#ff6659",
+    typography: {
+      fontFamily: "var(--font-geist-sans), Roboto, Arial, sans-serif",
     },
-    background: {
-      default: "#fafafa",
+    shape: {
+      borderRadius: 12,
     },
-  },
-  typography: {
-    fontFamily: "var(--font-geist-sans), Roboto, Arial, sans-serif",
-  },
-  shape: {
-    borderRadius: 12,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          fontWeight: 600,
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: "none",
+            fontWeight: 600,
+          },
         },
       },
     },
-  },
-});
+  });
+}
 
+const theme = createAppTheme();
 export default theme;

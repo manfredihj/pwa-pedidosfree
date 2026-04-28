@@ -11,6 +11,22 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+// --- Tenant ---
+
+export interface TenantData {
+  idgroup: number;
+  slug: string;
+  theme: {
+    primaryColor: string;
+    secondaryColor: string;
+  };
+}
+
+export async function getTenantBySlug(slug: string): Promise<TenantData> {
+  const { data } = await api.get<ApiResponse<TenantData>>(`/tenants/${slug}`);
+  return data.data;
+}
+
 // --- Group ---
 
 export interface EntityDeliveryZone {
