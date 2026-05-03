@@ -81,7 +81,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
       <AppHeader tenant={tenant} onCartClick={handleCartClick} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (
-          <CheckoutView entityDeliveryZones={entity.entitydeliveryzones || []} onBack={handleCheckoutBack} />
+          <CheckoutView entity={entity} idgroup={tenant.group.idgroup} onBack={handleCheckoutBack} />
         ) : showCart ? (
           <CartView
             entityId={entity.identity}

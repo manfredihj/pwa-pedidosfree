@@ -53,6 +53,20 @@ export interface EntityDiscount {
   [key: string]: unknown;
 }
 
+export interface EntityFee {
+  identityfee: number;
+  name: string;
+  description: string;
+  feevalue: number;
+  calculationtype: "percentage" | "fixed";
+  amountmin: number | null;
+  conditionspayments: string | null;
+  conditionstypeorder: string | null;
+  conditionscustomers: string | null;
+  conditionstime: string | null;
+  [key: string]: unknown;
+}
+
 export interface EntityContact {
   value: string;
   contacttype: {
@@ -76,6 +90,7 @@ export interface GroupEntity {
   entitydeliveryzones: EntityDeliveryZone[];
   entitycontacts: EntityContact[];
   entitydiscounts: EntityDiscount[];
+  entityfees: EntityFee[];
   scheduledata: {
     status: { isopentoday: boolean; isopen: boolean; closefinished: boolean };
     message: string;
@@ -87,6 +102,15 @@ export interface GroupEntity {
     typeofpayment: { name: string; subtype: string; active: boolean }[];
     configuration: { name: string; active: boolean }[];
   };
+  entitypaymentconfigs?: {
+    description: string;
+    attributename: string;
+    attributetypename: string;
+    publickey: string;
+    applicationfee: number;
+    requestdocumentamountmin: number;
+    [key: string]: unknown;
+  }[];
 }
 
 export interface Group {
@@ -433,6 +457,64 @@ export async function deactivateUserAddress(
     null,
     { headers: { Authorization: `Bearer ${token}` } },
   );
+  return data;
+}
+
+// --- Create Order ---
+
+export interface CreateOrderPayload {
+  identity: number;
+  iduser: number;
+  deliverytype: string; // "DELIVERY" | "TAKE-AWAY"
+  paymenttype: string;
+  identityschedule: number;
+  note: string;
+  shippingcost: number;
+  iduseraddress?: number;
+  phone?: string;
+  orderdetails: {
+    idproduct: number;
+    nameproduct: string;
+    quantity: number;
+    price: number;
+    totaloption: number;
+    note: string;
+    orderdetailgroups: {
+      idproductoptiongroup: number;
+      nameproductoptiongroup: string;
+      orderdetailproductoptions: {
+        idproductoption: number;
+        nameoption: string;
+        price: number;
+        quantity: number;
+      }[];
+    }[];
+  }[];
+  orderdiscounts: {
+    identitydiscount: number;
+    iduserdiscountcoupon: number | null;
+    description: string;
+    amount: number;
+  }[];
+  orderfees: {
+    identityfee: number;
+    name: string;
+    description: string;
+    amount: number;
+  }[];
+  couponcode?: string;
+}
+
+export async function createOrder(
+  payload: CreateOrderPayload,
+  token: string,
+): Promise<ApiResponse<Order>> {
+  const { data } = await api.post<ApiResponse<Order>>("/orders", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
   return data;
 }
 
