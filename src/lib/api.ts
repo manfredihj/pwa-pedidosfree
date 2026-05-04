@@ -463,47 +463,43 @@ export async function deactivateUserAddress(
 
 // --- Create Order ---
 
-export interface CreateOrderPayload {
-  identity: number;
-  iduser: number;
-  deliverytype: string; // "DELIVERY" | "TAKE-AWAY"
-  paymenttype: string;
-  identityschedule: number;
+export interface CreateOrderDetail {
+  idorderdetail: null;
+  idproduct: number;
+  nameproduct: string;
+  quantity: number;
+  price: number;
+  totaloption: number;
   note: string;
-  shippingcost: number;
-  iduseraddress?: number;
-  phone?: string;
-  orderdetails: {
-    idproduct: number;
-    nameproduct: string;
-    quantity: number;
-    price: number;
-    totaloption: number;
-    note: string;
-    orderdetailgroups: {
-      idproductoptiongroup: number;
-      nameproductoptiongroup: string;
-      orderdetailproductoptions: {
-        idproductoption: number;
-        nameoption: string;
-        price: number;
-        quantity: number;
-      }[];
+  orderdetailgroups: {
+    idproductoptiongroup: number;
+    nameproductoptiongroup: string;
+    orderdetailproductoptions: {
+      idproductoption: number;
+      nameoption: string;
+      price: number;
+      quantity: number;
     }[];
   }[];
-  orderdiscounts: {
-    identitydiscount: number;
-    iduserdiscountcoupon: number | null;
-    description: string;
-    amount: number;
-  }[];
-  orderfees: {
-    identityfee: number;
-    name: string;
-    description: string;
-    amount: number;
-  }[];
-  couponcode?: string;
+}
+
+export interface CreateOrderPayload {
+  identity: number;
+  userid: number;
+  delivery: boolean;
+  paymenttype: string;
+  paymentamount: number;
+  iduseraddress?: number;
+  identitydeliveryzone?: number;
+  addresscomplete?: string;
+  phone?: string;
+  notes?: string;
+  deliverydateestimated: string;
+  preorder: boolean;
+  fromapp: string;
+  detail: string; // JSON.stringify of CreateOrderDetail[]
+  discounts: string; // JSON.stringify of discount array
+  fees: string; // JSON.stringify of fee array
 }
 
 export async function createOrder(

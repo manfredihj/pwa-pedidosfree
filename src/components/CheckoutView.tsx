@@ -79,6 +79,7 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
   // Address & delivery zone
   const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
+  const [deliveryZoneId, setDeliveryZoneId] = useState<number | null>(null);
 
   // Phone (take-away)
   const [phone, setPhone] = useState(user?.phone || "");
@@ -174,6 +175,7 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
   const handleAddressSelected = useCallback((address: UserAddress, identitydeliveryzone: number | null, zoneCost: number) => {
     setSelectedAddress(address);
     setShippingCost(zoneCost);
+    setDeliveryZoneId(identitydeliveryzone);
     setPhone(address.phone || user?.phone || "");
     setStep("summary");
   }, [user?.phone]);
@@ -237,48 +239,58 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
       let order = orderInserted;
 
       if (!order) {
+        const detail = items.map((item) => ({
+          idorderdetail: null,
+          idproduct: item.idproduct,
+          nameproduct: item.nameproduct,
+          quantity: item.quantity,
+          price: item.price,
+          totaloption: item.totaloption,
+          note: item.note,
+          orderdetailgroups: item.orderdetailgroups.map((g) => ({
+            idproductoptiongroup: g.idproductoptiongroup,
+            nameproductoptiongroup: g.nameproductoptiongroup,
+            orderdetailproductoptions: g.orderdetailproductoptions.map((o) => ({
+              idproductoption: o.idproductoption,
+              nameoption: o.nameoption,
+              price: o.price,
+              quantity: o.quantity,
+            })),
+          })),
+        }));
+
+        const addressComplete = isDelivery && selectedAddress
+          ? `${selectedAddress.street} ${selectedAddress.streetnumber} ${selectedAddress.streetdpto || ""}`.trim()
+          : undefined;
+
         const res = await createOrder(
           {
             identity: entity.identity,
-            iduser: user.id,
-            deliverytype: serviceType,
+            userid: user.id,
+            delivery: isDelivery,
             paymenttype: paymentType,
-            identityschedule: selectedScheduleId || 0,
-            note: notes,
-            shippingcost: deliveryCost,
+            paymentamount: 0,
             iduseraddress: isDelivery ? selectedAddress?.iduseraddress : undefined,
+            identitydeliveryzone: isDelivery ? (deliveryZoneId ?? undefined) : undefined,
+            addresscomplete: addressComplete,
             phone: !isDelivery ? phone : undefined,
-            orderdetails: items.map((item) => ({
-              idproduct: item.idproduct,
-              nameproduct: item.nameproduct,
-              quantity: item.quantity,
-              price: item.price,
-              totaloption: item.totaloption,
-              note: item.note,
-              orderdetailgroups: item.orderdetailgroups.map((g) => ({
-                idproductoptiongroup: g.idproductoptiongroup,
-                nameproductoptiongroup: g.nameproductoptiongroup,
-                orderdetailproductoptions: g.orderdetailproductoptions.map((o) => ({
-                  idproductoption: o.idproductoption,
-                  nameoption: o.nameoption,
-                  price: o.price,
-                  quantity: o.quantity,
-                })),
-              })),
-            })),
-            orderdiscounts: appliedDiscounts.map((d) => ({
+            notes,
+            deliverydateestimated: "Lo antes posible",
+            preorder: false,
+            fromapp: "PWA",
+            detail: JSON.stringify(detail),
+            discounts: JSON.stringify(appliedDiscounts.map((d) => ({
               identitydiscount: d.identitydiscount,
               iduserdiscountcoupon: d.iduserdiscountcoupon,
               description: d.description,
               amount: d.amount,
-            })),
-            orderfees: appliedFees.map((f) => ({
+            }))),
+            fees: JSON.stringify(appliedFees.map((f) => ({
               identityfee: f.identityfee,
               name: f.name,
               description: f.description,
               amount: f.amount,
-            })),
-            couponcode: undefined,
+            }))),
           },
           token,
         );
