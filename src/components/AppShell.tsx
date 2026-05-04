@@ -10,6 +10,7 @@ import CheckoutView from "@/components/CheckoutView";
 import PedidosView from "@/components/PedidosView";
 import ProfileView from "@/components/ProfileView";
 import FloatingCartBar from "@/components/FloatingCartBar";
+import { useAuth } from "@/lib/AuthContext";
 import type { Tenant } from "@/lib/tenant";
 import type { Section, GroupEntity } from "@/lib/api";
 
@@ -20,9 +21,11 @@ interface AppShellProps {
 }
 
 export default function AppShell({ tenant, sections, entity }: AppShellProps) {
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabValue>("menu");
   const [showCheckout, setShowCheckout] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState(false);
 
   // Push browser history state when navigating to sub-screens
   const pushHistory = useCallback((screen: string) => {
@@ -40,6 +43,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
 
   const handleRequireLogin = useCallback(() => {
     setShowCart(false);
+    setPendingCheckout(true);
     setActiveTab("perfil");
   }, []);
 
@@ -59,6 +63,16 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
     }
     setActiveTab(tab);
   }, [pushHistory]);
+
+  // After login, redirect to checkout if pending
+  useEffect(() => {
+    if (isAuthenticated && pendingCheckout) {
+      setPendingCheckout(false);
+      pushHistory("checkout");
+      setShowCheckout(true);
+      setActiveTab("menu");
+    }
+  }, [isAuthenticated, pendingCheckout, pushHistory]);
 
   // Listen for browser back button (Android back)
   useEffect(() => {
