@@ -19,6 +19,8 @@ export interface PaymentCardResult {
   tokenId: string;
   paymentMethodId: string;
   paymentTypeId: string;
+  lastFourDigits: string;
+  paymentMethodName: string;
   isNew: boolean;
 }
 
@@ -183,6 +185,8 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
         tokenId: result.id,
         paymentMethodId,
         paymentTypeId,
+        lastFourDigits: cardNumber.slice(-4),
+        paymentMethodName: paymentMethodId.toUpperCase(),
         isNew: true,
       });
     } catch {

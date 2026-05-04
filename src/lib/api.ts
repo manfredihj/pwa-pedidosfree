@@ -319,6 +319,7 @@ export interface Order {
   orderdetails: OrderItem[];
   orderdiscounts: OrderDiscount[];
   orderfees: OrderFee[];
+  orderlinks?: { typelink: string; linkurl: string; labelMessage: string }[];
   [key: string]: unknown;
 }
 
@@ -515,6 +516,126 @@ export async function createOrder(
       "Content-Type": "application/json",
     },
   });
+  return data;
+}
+
+// --- Coupons ---
+
+export interface CouponValidationResult {
+  found: boolean;
+  message?: string;
+  discount?: EntityDiscount & { iduserdiscountcoupon?: number };
+}
+
+export async function validateCoupon(
+  userid: number,
+  identity: number,
+  couponCode: string,
+  token: string,
+): Promise<CouponValidationResult> {
+  const { data } = await api.post<ApiResponse<CouponValidationResult>>(
+    "/discounts/validate",
+    { userid, identity, couponcode: couponCode },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  return data.data;
+}
+
+// --- Payment Order (MercadoPago) ---
+
+export interface PaymentOrderPayload {
+  identity: number;
+  user: User;
+  order: Order;
+  fromapp: string;
+  paymenttype: string;
+  paymentcardinfo: {
+    tokenId: string;
+    paymentMethodId: string;
+    paymentTypeId: string;
+    isNew: boolean;
+    customerId?: string | null;
+  };
+  totalamount: number;
+}
+
+export async function paymentOrder(
+  payload: PaymentOrderPayload,
+  token: string,
+): Promise<ApiResponse<unknown>> {
+  const { data } = await api.post<ApiResponse<unknown>>("/orders/payment", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  return data;
+}
+
+// --- Payment Cards (MercadoPago) ---
+
+export interface SavedCard {
+  id: string;
+  customer_id: string;
+  last_four_digits: string;
+  expiration_month: number;
+  expiration_year: number;
+  payment_method: {
+    id: string;
+    name: string;
+    thumbnail: string;
+  };
+  payment_type_id: string;
+  security_code: {
+    length: number;
+  };
+  issuer: {
+    id: number;
+    name: string;
+  };
+  [key: string]: unknown;
+}
+
+export async function getPaymentCards(
+  params: { user: User; email: string; identity: number },
+  token: string,
+): Promise<SavedCard[]> {
+  const { data } = await api.post<ApiResponse<SavedCard[]>>(
+    "/users/cards/retrieve",
+    {
+      user: params.user,
+      email: params.email,
+      identity: params.identity,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  return data.data;
+}
+
+export async function removePaymentCard(
+  params: { customerid: string; cardid: string; identity: number; user: User },
+  token: string,
+): Promise<ApiResponse<unknown>> {
+  const { data } = await api.post<ApiResponse<unknown>>(
+    "/users/cards/delete",
+    params,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
   return data;
 }
 

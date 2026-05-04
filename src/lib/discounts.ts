@@ -4,7 +4,7 @@ import type { CartDetailItem } from "./CartContext";
 export interface AppliedDiscount {
   idorderdiscount: null;
   identitydiscount: number;
-  iduserdiscountcoupon: null;
+  iduserdiscountcoupon: number | null;
   description: string;
   amount: number;
 }

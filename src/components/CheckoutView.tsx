@@ -21,13 +21,14 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import QrCodeIcon from "@mui/icons-material/QrCode2";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
 import AddressSelect from "@/components/AddressSelect";
 import PaymentCardForm, { type PaymentCardResult } from "@/components/PaymentCardForm";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { getApplicableDiscounts, totalDiscounts, type AppliedDiscount } from "@/lib/discounts";
 import { getApplicableFees, totalFees, type AppliedFee } from "@/lib/fees";
-import { getEntityScheduleStatus, createOrder, type UserAddress, type GroupEntity, type ScheduleData, type ScheduleItem } from "@/lib/api";
+import { getEntityScheduleStatus, createOrder, paymentOrder, getPaymentCards, removePaymentCard, validateCoupon, type UserAddress, type GroupEntity, type ScheduleData, type ScheduleItem, type SavedCard, type Order } from "@/lib/api";
 
 interface CheckoutViewProps {
   entity: GroupEntity;
@@ -37,22 +38,32 @@ interface CheckoutViewProps {
 
 type CheckoutStep = "address" | "summary" | "card";
 
+const PAYMENT_LABELS: Record<string, string> = {
+  "PAYMENT-CASH": "Efectivo",
+  "PAYMENT-CREDIT-CARD-MP": "Pago con tarjeta",
+  "payment_transfer": "Transferencia",
+};
+
+function getPaymentLabel(name: string): string {
+  return PAYMENT_LABELS[name] || name;
+}
+
 function getPaymentIcon(name: string) {
   const n = name.toUpperCase();
-  if (n.includes("EFECTIVO") || n.includes("CASH")) return <PaymentsIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("DÉBITO") || n.includes("DEBITO") || n.includes("CRÉDITO") || n.includes("CREDITO") || n.includes("TARJETA") || n.includes("CARD")) return <CreditCardIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("MERCADO") || n.includes("WALLET") || n.includes("BILLETERA")) return <AccountBalanceWalletIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("QR") || n.includes("TRANSFER")) return <QrCodeIcon sx={{ fontSize: 32, color: "white" }} />;
+  if (n.includes("CASH")) return <PaymentsIcon sx={{ fontSize: 32, color: "white" }} />;
+  if (n.includes("CREDIT") || n.includes("DEBIT") || n.includes("CARD")) return <CreditCardIcon sx={{ fontSize: 32, color: "white" }} />;
+  if (n.includes("MERCADO") || n.includes("WALLET")) return <AccountBalanceWalletIcon sx={{ fontSize: 32, color: "white" }} />;
+  if (n.includes("TRANSFER")) return <QrCodeIcon sx={{ fontSize: 32, color: "white" }} />;
   return <PaymentsIcon sx={{ fontSize: 32, color: "white" }} />;
 }
 
 function getPaymentColor(name: string, index: number): string {
   const n = name.toUpperCase();
-  if (n.includes("EFECTIVO") || n.includes("CASH")) return "#2e7d32";
-  if (n.includes("DÉBITO") || n.includes("DEBITO")) return "#1565c0";
-  if (n.includes("CRÉDITO") || n.includes("CREDITO")) return "#283593";
+  if (n.includes("CASH")) return "#2e7d32";
+  if (n.includes("DEBIT")) return "#1565c0";
+  if (n.includes("CREDIT") || n.includes("CARD")) return "#283593";
   if (n.includes("MERCADO")) return "#009ee3";
-  if (n.includes("QR") || n.includes("TRANSFER")) return "#6a1b9a";
+  if (n.includes("TRANSFER")) return "#6a1b9a";
   const colors = ["#37474f", "#455a64", "#546e7a", "#607d8b"];
   return colors[index % colors.length];
 }
@@ -74,12 +85,19 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
 
-  // Payment type
-  const activePaymentTypes = entity.attributesbuilder.typeofpayment.filter((p) => p.active);
+  // Payment type — exclude online card payments from carousel
+  const allActivePaymentTypes = entity.attributesbuilder.typeofpayment.filter((p) => p.active);
+  const hasCardPayment = allActivePaymentTypes.some((p) => p.name === "PAYMENT-CREDIT-CARD-MP");
+  const activePaymentTypes = allActivePaymentTypes.filter((p) => p.subtype !== "PAYMENT-ONLINE");
   const [paymentType, setPaymentType] = useState(activePaymentTypes[0]?.name || "");
 
   // Card payment (MercadoPago)
   const [cardInfo, setCardInfo] = useState<PaymentCardResult | null>(null);
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
+  const [selectedCard, setSelectedCard] = useState<SavedCard | null>(null);
+  const [cvvDialogOpen, setCvvDialogOpen] = useState(false);
+  const [cvvInput, setCvvInput] = useState("");
+  const [cvvLength, setCvvLength] = useState(3);
 
   // Notes
   const [notes, setNotes] = useState("");
@@ -87,9 +105,11 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
   const [notesInput, setNotesInput] = useState("");
 
   // Coupon
-  const [couponCode, setCouponCode] = useState("");
+  const [couponDiscounts, setCouponDiscounts] = useState<AppliedDiscount[]>([]);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
   const [couponInput, setCouponInput] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // Schedule
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
@@ -98,6 +118,8 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
   // Sending state
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orderInserted, setOrderInserted] = useState<Order | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Load schedules
   useEffect(() => {
@@ -112,11 +134,26 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
       .catch(() => setScheduleData(null));
   }, [entity.identity, serviceType]);
 
-  // Calculate discounts
+  // Load saved cards
+  useEffect(() => {
+    if (!hasCardPayment || !user) return;
+    getValidToken().then((token) => {
+      if (!token) return;
+      getPaymentCards(
+        { user, email: user.email, identity: entity.identity },
+        token,
+      )
+        .then((cards) => setSavedCards(cards))
+        .catch(() => setSavedCards([]));
+    });
+  }, [hasCardPayment, user, entity.identity, getValidToken]);
+
+  // Calculate discounts (entity auto-discounts + coupon discounts)
   const subtotal = total;
-  const appliedDiscounts: AppliedDiscount[] = items.length > 0
+  const entityDiscounts: AppliedDiscount[] = items.length > 0
     ? getApplicableDiscounts(entity.entitydiscounts || [], subtotal, items, serviceType, paymentType, selectedScheduleId)
     : [];
+  const appliedDiscounts = [...entityDiscounts, ...couponDiscounts];
   const discountAmount = totalDiscounts(appliedDiscounts);
   const deliveryCost = isDelivery ? shippingCost : 0;
 
@@ -141,9 +178,51 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
     setStep("summary");
   }, [user?.phone]);
 
+  const isPaymentWithCard = paymentType === "PAYMENT-CREDIT-CARD-MP";
+
+  const processPayment = useCallback(async (order: Order, token: string) => {
+    if (!user || !cardInfo) return;
+    const res = await paymentOrder(
+      {
+        identity: entity.identity,
+        user,
+        order,
+        fromapp: "PWA",
+        paymenttype: paymentType,
+        paymentcardinfo: {
+          tokenId: cardInfo.tokenId,
+          paymentMethodId: cardInfo.paymentMethodId,
+          paymentTypeId: cardInfo.paymentTypeId,
+          isNew: cardInfo.isNew,
+          customerId: selectedCard?.customer_id ?? null,
+        },
+        totalamount: grandTotal,
+      },
+      token,
+    );
+    if (!res.success) {
+      throw new Error(res.message || "Error al procesar el pago.");
+    }
+  }, [user, cardInfo, entity.identity, paymentType, grandTotal, selectedCard]);
+
   const handleConfirmOrder = useCallback(async () => {
     if (!user) return;
     setError(null);
+
+    // Validations
+    if (!isDelivery && !phone) {
+      setError("Debe ingresar un número de contacto.");
+      return;
+    }
+    if (!paymentType) {
+      setError("Debe seleccionar forma de pago.");
+      return;
+    }
+    if (isPaymentWithCard && !cardInfo) {
+      setError("Debe agregar una tarjeta.");
+      return;
+    }
+
     setSending(true);
 
     try {
@@ -154,70 +233,85 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
         return;
       }
 
-      await createOrder(
-        {
-          identity: entity.identity,
-          iduser: user.id,
-          deliverytype: serviceType,
-          paymenttype: paymentType,
-          identityschedule: selectedScheduleId || 0,
-          note: notes,
-          shippingcost: deliveryCost,
-          iduseraddress: isDelivery ? selectedAddress?.iduseraddress : undefined,
-          phone: !isDelivery ? phone : undefined,
-          orderdetails: items.map((item) => ({
-            idproduct: item.idproduct,
-            nameproduct: item.nameproduct,
-            quantity: item.quantity,
-            price: item.price,
-            totaloption: item.totaloption,
-            note: item.note,
-            orderdetailgroups: item.orderdetailgroups.map((g) => ({
-              idproductoptiongroup: g.idproductoptiongroup,
-              nameproductoptiongroup: g.nameproductoptiongroup,
-              orderdetailproductoptions: g.orderdetailproductoptions.map((o) => ({
-                idproductoption: o.idproductoption,
-                nameoption: o.nameoption,
-                price: o.price,
-                quantity: o.quantity,
+      // If order was already created (retry payment)
+      let order = orderInserted;
+
+      if (!order) {
+        const res = await createOrder(
+          {
+            identity: entity.identity,
+            iduser: user.id,
+            deliverytype: serviceType,
+            paymenttype: paymentType,
+            identityschedule: selectedScheduleId || 0,
+            note: notes,
+            shippingcost: deliveryCost,
+            iduseraddress: isDelivery ? selectedAddress?.iduseraddress : undefined,
+            phone: !isDelivery ? phone : undefined,
+            orderdetails: items.map((item) => ({
+              idproduct: item.idproduct,
+              nameproduct: item.nameproduct,
+              quantity: item.quantity,
+              price: item.price,
+              totaloption: item.totaloption,
+              note: item.note,
+              orderdetailgroups: item.orderdetailgroups.map((g) => ({
+                idproductoptiongroup: g.idproductoptiongroup,
+                nameproductoptiongroup: g.nameproductoptiongroup,
+                orderdetailproductoptions: g.orderdetailproductoptions.map((o) => ({
+                  idproductoption: o.idproductoption,
+                  nameoption: o.nameoption,
+                  price: o.price,
+                  quantity: o.quantity,
+                })),
               })),
             })),
-          })),
-          orderdiscounts: appliedDiscounts.map((d) => ({
-            identitydiscount: d.identitydiscount,
-            iduserdiscountcoupon: d.iduserdiscountcoupon,
-            description: d.description,
-            amount: d.amount,
-          })),
-          orderfees: appliedFees.map((f) => ({
-            identityfee: f.identityfee,
-            name: f.name,
-            description: f.description,
-            amount: f.amount,
-          })),
-          couponcode: couponCode || undefined,
-        },
-        token,
-      );
+            orderdiscounts: appliedDiscounts.map((d) => ({
+              identitydiscount: d.identitydiscount,
+              iduserdiscountcoupon: d.iduserdiscountcoupon,
+              description: d.description,
+              amount: d.amount,
+            })),
+            orderfees: appliedFees.map((f) => ({
+              identityfee: f.identityfee,
+              name: f.name,
+              description: f.description,
+              amount: f.amount,
+            })),
+            couponcode: undefined,
+          },
+          token,
+        );
 
+        if (!res.success) {
+          throw new Error(res.message || "Error al crear el pedido.");
+        }
+
+        order = res.data;
+        setOrderInserted(order);
+      }
+
+      // If card payment, process payment
+      if (isPaymentWithCard) {
+        await processPayment(order, token);
+      }
+
+      // Success
       clearCart();
-      onBack();
+      setShowSuccess(true);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al enviar el pedido";
+      const msg = err instanceof Error ? err.message : "Se produjo un error. Por favor reintente.";
       setError(msg);
     } finally {
       setSending(false);
     }
-  }, [user, getValidToken, entity.identity, serviceType, paymentType, selectedScheduleId, notes, deliveryCost, isDelivery, selectedAddress, phone, items, appliedDiscounts, appliedFees, couponCode, clearCart, onBack]);
+  }, [user, getValidToken, entity.identity, serviceType, paymentType, selectedScheduleId, notes, deliveryCost, isDelivery, selectedAddress, phone, items, appliedDiscounts, appliedFees, clearCart, isPaymentWithCard, cardInfo, orderInserted, processPayment]);
 
-  // Check if selected payment requires card
   // Find MercadoPago card config
   const mpConfig = (entity.entitypaymentconfigs || []).find(
     (c) => c.attributename === "PAYMENT-CREDIT-CARD-MP"
   );
   const mpPublicKey = mpConfig?.publickey;
-
-  const isCardPayment = paymentType === "PAYMENT-CREDIT-CARD-MP";
 
   const handlePaymentTypeSelect = useCallback((name: string) => {
     setPaymentType(name);
@@ -228,7 +322,125 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
 
   const handleCardSuccess = useCallback((result: PaymentCardResult) => {
     setCardInfo(result);
+    setSelectedCard(null);
+    setPaymentType("PAYMENT-CREDIT-CARD-MP");
     setStep("summary");
+  }, []);
+
+  const handleSelectSavedCard = useCallback((card: SavedCard) => {
+    setSelectedCard(card);
+    if (card.security_code.length === 0) {
+      // No CVV needed — tokenize directly
+      // For now just set the payment type, tokenization happens on submit
+      setPaymentType("PAYMENT-CREDIT-CARD-MP");
+      setCardInfo({
+        tokenId: card.id,
+        paymentMethodId: card.payment_method.id,
+        paymentTypeId: card.payment_type_id,
+        lastFourDigits: card.last_four_digits,
+        paymentMethodName: card.payment_method.name,
+        isNew: false,
+      });
+    } else {
+      setCvvLength(card.security_code.length);
+      setCvvInput("");
+      setCvvDialogOpen(true);
+    }
+  }, []);
+
+  const handleCvvConfirm = useCallback(() => {
+    if (!selectedCard || cvvInput.length !== cvvLength) return;
+    setCvvDialogOpen(false);
+    setPaymentType("PAYMENT-CREDIT-CARD-MP");
+    setCardInfo({
+      tokenId: selectedCard.id,
+      paymentMethodId: selectedCard.payment_method.id,
+      paymentTypeId: selectedCard.payment_type_id,
+      lastFourDigits: selectedCard.last_four_digits,
+      paymentMethodName: selectedCard.payment_method.name,
+      isNew: false,
+    });
+  }, [selectedCard, cvvInput, cvvLength]);
+
+  const handleRemoveCard = useCallback(async (card: SavedCard) => {
+    if (!user) return;
+    const token = await getValidToken();
+    if (!token) return;
+    try {
+      await removePaymentCard(
+        { customerid: card.customer_id, cardid: card.id, identity: entity.identity, user },
+        token,
+      );
+      setSavedCards((prev) => prev.filter((c) => c.id !== card.id));
+      if (selectedCard?.id === card.id) {
+        setSelectedCard(null);
+        setCardInfo(null);
+      }
+    } catch { /* ignore */ }
+  }, [user, getValidToken, entity.identity, selectedCard]);
+
+  const handleValidateCoupon = useCallback(async () => {
+    if (!couponInput.trim() || !user) return;
+    setCouponError(null);
+    setCouponLoading(true);
+
+    try {
+      const token = await getValidToken();
+      if (!token) {
+        setCouponError("Sesión expirada.");
+        setCouponLoading(false);
+        return;
+      }
+
+      const result = await validateCoupon(user.id, entity.identity, couponInput.toUpperCase(), token);
+
+      if (!result.found) {
+        setCouponError(result.message || "Cupón no encontrado.");
+        setCouponLoading(false);
+        return;
+      }
+
+      if (!result.discount) {
+        setCouponError("El descuento no aplica para este pedido.");
+        setCouponLoading(false);
+        return;
+      }
+
+      const disc = result.discount;
+      let amount = 0;
+      if (disc.discounttype.code === "PERC_CART") {
+        amount = subtotal * disc.percentage / 100;
+      } else if (disc.discounttype.code === "PERMANENT_CART") {
+        amount = disc.percentage;
+      }
+
+      if (amount <= 0) {
+        setCouponError("El descuento no aplica para este tipo de pedido.");
+        setCouponLoading(false);
+        return;
+      }
+
+      setCouponDiscounts((prev) => [
+        ...prev,
+        {
+          idorderdiscount: null,
+          identitydiscount: disc.identitydiscount,
+          iduserdiscountcoupon: disc.iduserdiscountcoupon ?? null,
+          description: disc.description,
+          amount,
+        },
+      ]);
+      setCouponDialogOpen(false);
+      setCouponInput("");
+    } catch {
+      setCouponError("Error al validar el cupón. Reintente.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }, [couponInput, user, getValidToken, entity.identity, subtotal]);
+
+  const handleRemoveCoupon = useCallback((index: number) => {
+    setCouponDiscounts((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   // Step: select address (delivery only)
@@ -255,6 +467,47 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
         onSuccess={handleCardSuccess}
         onBack={() => setStep("summary")}
       />
+    );
+  }
+
+  // Step: order success
+  if (showSuccess) {
+    const transferLink = orderInserted?.orderlinks?.find((l) => l.typelink === "do_transfer");
+
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 8, px: 3, textAlign: "center" }}>
+        <CheckCircleOutlineIcon sx={{ fontSize: 80, color: "success.main", mb: 2 }} />
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+          Pedido realizado
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: transferLink ? 2 : 4 }}>
+          Tu pedido ha sido realizado. El mismo será confirmado a la brevedad.
+        </Typography>
+
+        {transferLink && (
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            href={transferLink.linkurl}
+            target="_blank"
+            rel="noopener"
+            sx={{ borderRadius: 6, fontWeight: 700, px: 4, py: 1.5, mb: 2 }}
+          >
+            Transferir
+          </Button>
+        )}
+
+        <Button
+          variant={transferLink ? "outlined" : "contained"}
+          color="secondary"
+          size="large"
+          onClick={onBack}
+          sx={{ borderRadius: 6, fontWeight: 700, px: 4, py: 1.5 }}
+        >
+          Aceptar
+        </Button>
+      </Box>
     );
   }
 
@@ -332,65 +585,172 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
                 {/* Icon */}
                 <Box>{getPaymentIcon(pt.name)}</Box>
                 {/* Label */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "white",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      textTransform: "capitalize",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {pt.name}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "white",
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {getPaymentLabel(pt.name)}
+                </Typography>
+              </Box>
+            );
+          })}
+
+          {/* Saved cards */}
+          {savedCards.map((card) => {
+            const isSelected = selectedCard?.id === card.id && paymentType === "PAYMENT-CREDIT-CARD-MP";
+            return (
+              <Box
+                key={card.id}
+                onClick={() => handleSelectSavedCard(card)}
+                sx={{
+                  minWidth: 150,
+                  height: 90,
+                  borderRadius: 3,
+                  bgcolor: "#1a237e",
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                  position: "relative",
+                  flexShrink: 0,
+                  scrollSnapAlign: "start",
+                  border: isSelected ? "2.5px solid" : "2.5px solid transparent",
+                  borderColor: isSelected ? "secondary.main" : "transparent",
+                  transition: "border-color 0.2s, transform 0.15s",
+                  transform: isSelected ? "scale(1.03)" : "scale(1)",
+                  boxShadow: isSelected ? "0 4px 16px rgba(0,0,0,0.2)" : "0 2px 8px rgba(0,0,0,0.12)",
+                }}
+              >
+                {/* Selected check */}
+                {isSelected && (
+                  <CheckCircleIcon sx={{ position: "absolute", top: 6, right: 6, fontSize: 20, color: "white" }} />
+                )}
+                {/* Remove button */}
+                <IconButton
+                  size="small"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveCard(card); }}
+                  sx={{ position: "absolute", bottom: 4, right: 4, color: "rgba(255,255,255,0.5)", p: 0.3 }}
+                >
+                  <CloseIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+                {/* Card info */}
+                <Typography variant="caption" sx={{ color: "white", fontWeight: 700, fontSize: "0.7rem" }}>
+                  **** {card.last_four_digits}
+                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.6rem", textTransform: "uppercase" }}>
+                    {card.payment_method.name}
                   </Typography>
-                  {isSelected && isCardPayment && cardInfo && (
-                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", display: "block", fontSize: "0.65rem" }}>
-                      Tarjeta agregada
-                    </Typography>
-                  )}
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.6rem" }}>
+                    {String(card.expiration_month).padStart(2, "0")}/{String(card.expiration_year).slice(-2)}
+                  </Typography>
                 </Box>
               </Box>
             );
           })}
-        </Box>
 
-        {/* Add card button (PedidosYa style) */}
-        {isCardPayment && (
-          <Box
-            onClick={() => mpPublicKey && setStep("card")}
-            sx={{
-              mt: 1.5,
-              p: 1.5,
-              borderRadius: 3,
-              bgcolor: "#e3f2fd",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              cursor: "pointer",
-            }}
-          >
-            <CreditCardIcon sx={{ fontSize: 36, color: "error.main" }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {cardInfo ? "Cambiar tarjeta" : "Agregar tarjeta"}
+          {/* New card (not yet saved) */}
+          {cardInfo?.isNew && (
+            <Box
+              sx={{
+                minWidth: 150,
+                height: 90,
+                borderRadius: 3,
+                bgcolor: "#1a237e",
+                p: 1.5,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                position: "relative",
+                flexShrink: 0,
+                scrollSnapAlign: "start",
+                border: "2.5px solid",
+                borderColor: "secondary.main",
+                transform: "scale(1.03)",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+              }}
+            >
+              <CheckCircleIcon sx={{ position: "absolute", top: 6, right: 6, fontSize: 20, color: "white" }} />
+              <Typography variant="caption" sx={{ color: "white", fontWeight: 700, fontSize: "0.7rem" }}>
+                **** {cardInfo.lastFourDigits}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Débito o crédito
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.6rem", textTransform: "uppercase" }}>
+                {cardInfo.paymentMethodName}
               </Typography>
             </Box>
-            <ChevronRightIcon sx={{ color: "text.secondary" }} />
-          </Box>
-        )}
+          )}
+
+          {/* Add card — inside carousel */}
+          {hasCardPayment && (
+            <Box
+              onClick={() => mpPublicKey && setStep("card")}
+              sx={{
+                minWidth: 150,
+                height: 90,
+                borderRadius: 3,
+                bgcolor: "#e3f2fd",
+                p: 1.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                flexShrink: 0,
+                scrollSnapAlign: "start",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              }}
+            >
+              <CreditCardIcon sx={{ fontSize: 32, color: "error.main" }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.75rem", lineHeight: 1.2, display: "block" }}>
+                  Agregar tarjeta
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+                  Débito o crédito
+                </Typography>
+              </Box>
+              <ChevronRightIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+            </Box>
+          )}
+        </Box>
       </Box>
 
       <Divider sx={{ mt: 1 }} />
 
       {/* ---- COUPON ---- */}
+      {/* Applied coupon discounts */}
+      {couponDiscounts.map((cd, i) => (
+        <Box key={i} sx={{ px: 2, py: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" sx={{ fontSize: "1.1rem" }}>🏷️</Typography>
+            <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
+              {cd.description}
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            color="error"
+            sx={{ fontWeight: 600, cursor: "pointer" }}
+            onClick={() => handleRemoveCoupon(i)}
+          >
+            Quitar
+          </Typography>
+        </Box>
+      ))}
+      {/* Add coupon button */}
       <Box
         onClick={() => {
-          setCouponInput(couponCode);
+          if (!paymentType) {
+            setError("Por favor, seleccioná la forma de pago primero.");
+            return;
+          }
+          setCouponInput("");
+          setCouponError(null);
           setCouponDialogOpen(true);
         }}
         sx={{
@@ -405,11 +765,11 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography variant="body2" sx={{ fontSize: "1.1rem" }}>🏷️</Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {couponCode ? `Cupón: ${couponCode}` : "¿Tenés un cupón?"}
+            ¿Tenés un cupón?
           </Typography>
         </Box>
         <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-          {couponCode ? "Cambiar" : "Agregar"}
+          Agregar
         </Typography>
       </Box>
 
@@ -655,21 +1015,53 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
             autoFocus
             fullWidth
             value={couponInput}
-            onChange={(e) => setCouponInput(e.target.value)}
+            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
             margin="dense"
             placeholder="Código del cupón"
+            slotProps={{ htmlInput: { style: { textTransform: "uppercase" } } }}
           />
+          {couponError && (
+            <Alert severity="error" sx={{ mt: 1, borderRadius: 2 }}>
+              {couponError}
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCouponDialogOpen(false)}>Cancelar</Button>
           <Button
             variant="contained"
-            onClick={() => {
-              setCouponCode(couponInput);
-              setCouponDialogOpen(false);
-            }}
+            disabled={couponLoading || !couponInput.trim()}
+            onClick={handleValidateCoupon}
+            startIcon={couponLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            Aplicar
+            {couponLoading ? "Validando..." : "Aplicar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CVV dialog */}
+      <Dialog open={cvvDialogOpen} onClose={() => setCvvDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Código de seguridad</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            type="password"
+            value={cvvInput}
+            onChange={(e) => setCvvInput(e.target.value.replace(/\D/g, "").slice(0, cvvLength))}
+            margin="dense"
+            placeholder={"•".repeat(cvvLength)}
+            slotProps={{ htmlInput: { inputMode: "numeric", maxLength: cvvLength } }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCvvDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            disabled={cvvInput.length !== cvvLength}
+            onClick={handleCvvConfirm}
+          >
+            Confirmar
           </Button>
         </DialogActions>
       </Dialog>
