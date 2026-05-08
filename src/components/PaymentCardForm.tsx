@@ -34,9 +34,7 @@ interface PaymentCardFormProps {
 interface MercadoPagoV2 {
   getIdentificationTypes: () => Promise<{ id: string; name: string }[]>;
   getPaymentMethods: (opts: { bin: string }) => Promise<{ results: { id: string; payment_type_id: string; settings: { security_code: { length: number }; card_number: { length: number } }[] }[] }>;
-  fields: {
-    createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
-  };
+  createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -201,7 +199,7 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
         tokenData.identificationNumber = docNumber;
       }
 
-      const result = await mpRef.current.fields.createCardToken(tokenData);
+      const result = await mpRef.current.createCardToken(tokenData);
 
       onSuccess({
         tokenId: result.id,
