@@ -3,12 +3,14 @@
 import { useEffect, useRef } from "react";
 import { requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
 import { subscribeToNotifications } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 
 interface FirebaseMessagingProps {
   topics: string[];
 }
 
 export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
+  const { getValidToken, isAuthenticated } = useAuth();
   const subscribedRef = useRef(false);
 
   useEffect(() => {
@@ -17,12 +19,13 @@ export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
     async function setup() {
       try {
         console.log("[FCM] Requesting notification permission...");
-        const token = await requestNotificationPermission();
-        console.log("[FCM] Token:", token ? token.substring(0, 20) + "..." : "null (permission denied)");
-        if (!token) return;
+        const fcmToken = await requestNotificationPermission();
+        console.log("[FCM] Token:", fcmToken ? fcmToken.substring(0, 20) + "..." : "null (permission denied)");
+        if (!fcmToken) return;
 
-        console.log("[FCM] Subscribing to topics:", topics);
-        await Promise.all(topics.map((topic) => subscribeToNotifications(token, topic)));
+        const accessToken = await getValidToken() || undefined;
+        console.log("[FCM] Subscribing to topics:", topics, "authenticated:", !!accessToken);
+        await Promise.all(topics.map((topic) => subscribeToNotifications(fcmToken, topic, accessToken)));
         console.log("[FCM] Subscribed successfully");
         subscribedRef.current = true;
       } catch (err) {
@@ -31,7 +34,7 @@ export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
     }
 
     setup();
-  }, [topics]);
+  }, [topics, isAuthenticated, getValidToken]);
 
   useEffect(() => {
     const unsubscribe = onForegroundMessage((payload) => {

@@ -636,9 +636,11 @@ function getDeviceInfo() {
   return { device, os, standalone };
 }
 
-export async function subscribeToNotifications(token: string, topic: string): Promise<void> {
+export async function subscribeToNotifications(token: string, topic: string, accessToken?: string): Promise<void> {
   const { device, os, standalone } = getDeviceInfo();
-  await api.post("/notifications/subscribe", { token, topic, platform: "pwa", device, os, standalone });
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  await api.post("/notifications/subscribe", { token, topic, platform: "pwa", device, os, standalone }, { headers });
 }
 
 export async function trackPwaInstall(slug: string): Promise<void> {

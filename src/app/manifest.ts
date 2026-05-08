@@ -13,8 +13,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   let name = "PedidosFree";
   let description = "Pedidos online para tu restaurante";
   let themeColor = "#d32f2f";
-  let icon192 = "/icon-192x192.svg";
-  let icon512 = "/icon-192x192.svg";
+  let icon192 = "/icon-192x192.png";
+  let icon512 = "/icon-512x512.png";
 
   try {
     const tenant = await getTenant();
@@ -47,11 +47,13 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
         src: icon192,
         sizes: "192x192",
         type: getImageType(icon192),
+        purpose: "any",
       },
       {
         src: icon512,
         sizes: "512x512",
         type: getImageType(icon512),
+        purpose: "any",
       },
     ],
   };
