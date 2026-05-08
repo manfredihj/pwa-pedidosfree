@@ -16,13 +16,17 @@ export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
 
     async function setup() {
       try {
+        console.log("[FCM] Requesting notification permission...");
         const token = await requestNotificationPermission();
+        console.log("[FCM] Token:", token ? token.substring(0, 20) + "..." : "null (permission denied)");
         if (!token) return;
 
+        console.log("[FCM] Subscribing to topics:", topics);
         await Promise.all(topics.map((topic) => subscribeToNotifications(token, topic)));
+        console.log("[FCM] Subscribed successfully");
         subscribedRef.current = true;
-      } catch {
-        // Silent fail — notifications are not critical
+      } catch (err) {
+        console.error("[FCM] Error:", err);
       }
     }
 
