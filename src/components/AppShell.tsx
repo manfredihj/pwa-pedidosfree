@@ -10,6 +10,8 @@ import CheckoutView from "@/components/CheckoutView";
 import PedidosView from "@/components/PedidosView";
 import ProfileView from "@/components/ProfileView";
 import FloatingCartBar from "@/components/FloatingCartBar";
+import FirebaseMessaging from "@/components/FirebaseMessaging";
+import PwaInstallTracker from "@/components/PwaInstallTracker";
 import { useAuth } from "@/lib/AuthContext";
 import type { Tenant } from "@/lib/tenant";
 import type { Section, GroupEntity } from "@/lib/api";
@@ -57,6 +59,11 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
     setShowCheckout(false);
   }, []);
 
+  const handleGoToPedidos = useCallback(() => {
+    setShowCheckout(false);
+    setActiveTab("pedidos");
+  }, []);
+
   const handleTabChange = useCallback((tab: TabValue) => {
     if (tab !== "menu") {
       pushHistory(tab);
@@ -95,7 +102,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
       <AppHeader tenant={tenant} onCartClick={handleCartClick} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (
-          <CheckoutView entity={entity} idgroup={tenant.group.idgroup} onBack={handleCheckoutBack} />
+          <CheckoutView entity={entity} idgroup={tenant.group.idgroup} onBack={handleCheckoutBack} onGoToPedidos={handleGoToPedidos} />
         ) : showCart ? (
           <CartView
             entityId={entity.identity}
@@ -123,6 +130,8 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
         <FloatingCartBar onClick={handleCartClick} />
       )}
       {!showCheckout && !showCart && <BottomNav value={activeTab} onChange={handleTabChange} />}
+      <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)} />
+      <PwaInstallTracker slug={tenant.slug} />
     </>
   );
 }

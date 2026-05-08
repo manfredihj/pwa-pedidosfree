@@ -18,7 +18,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import QrCodeIcon from "@mui/icons-material/QrCode2";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -34,41 +34,32 @@ interface CheckoutViewProps {
   entity: GroupEntity;
   idgroup: number;
   onBack: () => void;
+  onGoToPedidos: () => void;
 }
 
 type CheckoutStep = "address" | "summary" | "card";
 
-const PAYMENT_LABELS: Record<string, string> = {
-  "PAYMENT-CASH": "Efectivo",
-  "PAYMENT-CREDIT-CARD-MP": "Pago con tarjeta",
-  "payment_transfer": "Transferencia",
+const PAYMENT_CONFIG: Record<string, { label: string; icon: typeof PaymentsIcon; color: string }> = {
+  "PAYMENT-CASH": { label: "Efectivo", icon: PaymentsIcon, color: "#2e7d32" },
+  "PAYMENT-CREDIT-CARD-MP": { label: "Pago con tarjeta", icon: CreditCardIcon, color: "#283593" },
+  "payment_transfer_bank": { label: "Transferencia", icon: AccountBalanceIcon, color: "#6a1b9a" },
+  "payment_mercado_pago_app": { label: "MercadoPago", icon: AccountBalanceWalletIcon, color: "#009ee3" },
 };
 
 function getPaymentLabel(name: string): string {
-  return PAYMENT_LABELS[name] || name;
+  return PAYMENT_CONFIG[name]?.label ?? name;
 }
 
 function getPaymentIcon(name: string) {
-  const n = name.toUpperCase();
-  if (n.includes("CASH")) return <PaymentsIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("CREDIT") || n.includes("DEBIT") || n.includes("CARD")) return <CreditCardIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("MERCADO") || n.includes("WALLET")) return <AccountBalanceWalletIcon sx={{ fontSize: 32, color: "white" }} />;
-  if (n.includes("TRANSFER")) return <QrCodeIcon sx={{ fontSize: 32, color: "white" }} />;
-  return <PaymentsIcon sx={{ fontSize: 32, color: "white" }} />;
+  const Icon = PAYMENT_CONFIG[name]?.icon ?? PaymentsIcon;
+  return <Icon sx={{ fontSize: 32, color: "white" }} />;
 }
 
-function getPaymentColor(name: string, index: number): string {
-  const n = name.toUpperCase();
-  if (n.includes("CASH")) return "#2e7d32";
-  if (n.includes("DEBIT")) return "#1565c0";
-  if (n.includes("CREDIT") || n.includes("CARD")) return "#283593";
-  if (n.includes("MERCADO")) return "#009ee3";
-  if (n.includes("TRANSFER")) return "#6a1b9a";
-  const colors = ["#37474f", "#455a64", "#546e7a", "#607d8b"];
-  return colors[index % colors.length];
+function getPaymentColor(name: string): string {
+  return PAYMENT_CONFIG[name]?.color ?? "#37474f";
 }
 
-export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewProps) {
+export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }: CheckoutViewProps) {
   const { items, total, serviceType, clearCart } = useCart();
   const { user, getValidToken } = useAuth();
   const isDelivery = serviceType === "DELIVERY";
@@ -514,10 +505,10 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
           variant={transferLink ? "outlined" : "contained"}
           color="secondary"
           size="large"
-          onClick={onBack}
+          onClick={onGoToPedidos}
           sx={{ borderRadius: 6, fontWeight: 700, px: 4, py: 1.5 }}
         >
-          Aceptar
+          Ver mis pedidos
         </Button>
       </Box>
     );
@@ -538,8 +529,8 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
       <Divider />
 
       {/* ---- PAYMENT CARDS CAROUSEL (PedidosYa style) ---- */}
-      <Box sx={{ px: 2, pt: 2.5, pb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+      <Box sx={{ pt: 2.5, pb: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, px: 2 }}>
           ¿Cómo querés pagar?
         </Typography>
         <Box
@@ -548,9 +539,9 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
             gap: 1.5,
             overflowX: "auto",
             pb: 1,
-            mx: -2,
             px: 2,
             scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
             "&::-webkit-scrollbar": { display: "none" },
             msOverflowStyle: "none",
             scrollbarWidth: "none",
@@ -566,7 +557,7 @@ export default function CheckoutView({ entity, idgroup, onBack }: CheckoutViewPr
                   minWidth: 150,
                   height: 90,
                   borderRadius: 3,
-                  bgcolor: getPaymentColor(pt.name, idx),
+                  bgcolor: getPaymentColor(pt.name),
                   p: 1.5,
                   display: "flex",
                   flexDirection: "column",

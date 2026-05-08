@@ -111,6 +111,7 @@ export interface GroupEntity {
     requestdocumentamountmin: number;
     [key: string]: unknown;
   }[];
+  firebasetopic: string;
 }
 
 export interface Group {
@@ -633,6 +634,36 @@ export async function removePaymentCard(
     },
   );
   return data;
+}
+
+// --- Notifications ---
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let device: "mobile" | "tablet" | "desktop" = "desktop";
+  if (/tablet|ipad|playbook|silk/i.test(ua)) device = "tablet";
+  else if (/mobile|iphone|android|phone/i.test(ua)) device = "mobile";
+
+  let os = "unknown";
+  if (/android/i.test(ua)) os = "android";
+  else if (/iphone|ipad|ipod/i.test(ua)) os = "ios";
+  else if (/windows/i.test(ua)) os = "windows";
+  else if (/mac/i.test(ua)) os = "macos";
+  else if (/linux/i.test(ua)) os = "linux";
+
+  const standalone = window.matchMedia("(display-mode: standalone)").matches;
+
+  return { device, os, standalone };
+}
+
+export async function subscribeToNotifications(token: string, topic: string): Promise<void> {
+  const { device, os, standalone } = getDeviceInfo();
+  await api.post("/notifications/subscribe", { token, topic, platform: "pwa", device, os, standalone });
+}
+
+export async function trackPwaInstall(slug: string): Promise<void> {
+  const { device, os } = getDeviceInfo();
+  await api.post("/notifications/pwa-install", { slug, platform: "pwa", device, os });
 }
 
 // --- Image helpers ---

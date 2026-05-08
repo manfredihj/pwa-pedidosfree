@@ -14,7 +14,7 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { buildImageProductThumbnail, getEntitySchedulesWeek, type Section, type Product, type GroupEntity, type ScheduleWeekItem } from "@/lib/api";
+import { buildImageProductThumbnail, getEntitySchedulesWeek, getEntityScheduleStatus, type Section, type Product, type GroupEntity, type ScheduleWeekItem, type ScheduleData } from "@/lib/api";
 import ProductDetail, { type CartItem } from "@/components/ProductDetail";
 import ServiceTypeTabs from "@/components/ServiceTypeTabs";
 import { useCart } from "@/lib/CartContext";
@@ -45,8 +45,21 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     addOrderDetail(item.product, item.quantity, item.notes, item.orderdetailgroups);
   }, [addOrderDetail]);
 
+  const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [weekSchedule, setWeekSchedule] = useState<ScheduleWeekItem[] | null>(null);
+
+  useEffect(() => {
+    getEntityScheduleStatus(entity.identity)
+      .then(setScheduleData)
+      .catch(() => {});
+  }, [entity.identity]);
+
+  const isOpen = scheduleData?.status.isopen ?? entity.scheduledata.status.isopen;
+  const hasSchedules = scheduleData
+    ? Object.values(scheduleData.schedules).some((s) => s.length > 0)
+    : false;
+  const canOrder = isOpen || hasSchedules;
 
   const headerImage = entity.entityimages.find((img) => img.keyname === "Header-mobile");
   const logoImage = entity.entityimages.find((img) => img.keyname === "Logo");
@@ -177,6 +190,31 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
         })()}
       </Box>
 
+      {/* Schedule status banner */}
+      {!isOpen && scheduleData && (
+        <Box
+          sx={{
+            mx: 2,
+            mt: 1,
+            px: 2,
+            py: 1.5,
+            bgcolor: canOrder ? "warning.light" : "error.light",
+            color: canOrder ? "warning.contrastText" : "error.contrastText",
+            borderRadius: 2,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            {scheduleData.message || "Local cerrado"}
+          </Typography>
+          {scheduleData.messagesecondary && (
+            <Typography variant="caption">
+              {scheduleData.messagesecondary}
+            </Typography>
+          )}
+        </Box>
+      )}
+
       {/* Category chips */}
       <Box
         sx={{
@@ -240,6 +278,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
             return (
               <Box key={product.idproduct}>
                 <ButtonBase
+                  disabled={!canOrder}
                   onClick={() => setSelectedProduct(product)}
                   sx={{
                     display: "flex",
@@ -249,6 +288,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
                     py: 1.5,
                     gap: 2,
                     alignItems: "flex-start",
+                    opacity: canOrder ? 1 : 0.5,
                   }}
                 >
                   {/* Text content */}

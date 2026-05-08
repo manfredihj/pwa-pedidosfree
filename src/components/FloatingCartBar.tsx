@@ -19,7 +19,7 @@ export default function FloatingCartBar({ onClick }: FloatingCartBarProps) {
     <Box
       sx={{
         position: "fixed",
-        bottom: 64,
+        bottom: 76,
         left: 12,
         right: 12,
         zIndex: 1050,

@@ -1,6 +1,33 @@
-const CACHE_NAME = "pedidosfree-v1";
+importScripts("https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js");
 
-self.addEventListener("install", (event) => {
+const CACHE_NAME = "pedidosfree-v1";
+let firebaseInitialized = false;
+
+function initFirebase(config) {
+  if (firebaseInitialized || !config?.apiKey) return;
+  firebase.initializeApp(config);
+  const messaging = firebase.messaging();
+  messaging.onBackgroundMessage((payload) => {
+    const data = payload.notification || {};
+    self.registration.showNotification(data.title || "Nueva notificacion", {
+      body: data.body || "",
+      icon: data.icon || "/icon-192x192.png",
+      badge: "/icon-192x192.png",
+      vibrate: [100, 50, 100],
+      data: { url: payload.data?.url || "/" },
+    });
+  });
+  firebaseInitialized = true;
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "FIREBASE_CONFIG") {
+    initFirebase(event.data.config);
+  }
+});
+
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
