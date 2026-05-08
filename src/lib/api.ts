@@ -636,11 +636,11 @@ function getDeviceInfo() {
   return { device, os, standalone };
 }
 
-export async function subscribeToNotifications(token: string, topic: string, accessToken?: string): Promise<void> {
+export async function subscribeToNotifications(token: string, topic: string, idgroup: number, accessToken?: string): Promise<void> {
   const { device, os, standalone } = getDeviceInfo();
   const headers: Record<string, string> = {};
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  await api.post("/notifications/subscribe", { token, topic, platform: "pwa", device, os, standalone }, { headers });
+  await api.post("/notifications/subscribe", { token, topic, idgroup, platform: "pwa", device, os, standalone }, { headers });
 }
 
 export async function unsubscribeFromNotifications(token: string, topics: string[]): Promise<void> {

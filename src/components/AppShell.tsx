@@ -98,7 +98,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
   }, [showCheckout, showCart, activeTab]);
 
   return (
-    <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)}>
+    <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)} idgroup={tenant.group.idgroup}>
       <AppHeader tenant={tenant} onCartClick={handleCartClick} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (

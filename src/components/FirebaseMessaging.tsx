@@ -25,10 +25,11 @@ export function useNotifications() {
 
 interface FirebaseMessagingProps {
   topics: string[];
+  idgroup: number;
   children: ReactNode;
 }
 
-export default function FirebaseMessaging({ topics, children }: FirebaseMessagingProps) {
+export default function FirebaseMessaging({ topics, idgroup, children }: FirebaseMessagingProps) {
   const { getValidToken, isAuthenticated } = useAuth();
   const subscribedWithAuthRef = useRef<boolean | null>(null);
   const [enabled, setEnabled] = useState(() => {
@@ -53,7 +54,7 @@ export default function FirebaseMessaging({ topics, children }: FirebaseMessagin
 
         const accessToken = await getValidToken() || undefined;
         console.log("[FCM] Subscribing to topics:", topics, "authenticated:", !!accessToken);
-        await Promise.all(topics.map((topic) => subscribeToNotifications(fcmToken, topic, accessToken)));
+        await Promise.all(topics.map((topic) => subscribeToNotifications(fcmToken, topic, idgroup, accessToken)));
         console.log("[FCM] Subscribed successfully");
         subscribedWithAuthRef.current = isAuthenticated;
       } catch (err) {
