@@ -32,6 +32,7 @@ interface FirebaseMessagingProps {
 export default function FirebaseMessaging({ topics, idgroup, children }: FirebaseMessagingProps) {
   const { getValidToken, isAuthenticated } = useAuth();
   const subscribedWithAuthRef = useRef<boolean | null>(null);
+  const subscribingRef = useRef(false);
   const [enabled, setEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(STORAGE_KEY) !== "disabled";
@@ -44,8 +45,10 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
   useEffect(() => {
     if (!enabled || topics.length === 0) return;
     if (subscribedWithAuthRef.current === isAuthenticated) return;
+    if (subscribingRef.current) return;
 
     async function setup() {
+      subscribingRef.current = true;
       try {
         console.log("[FCM] Requesting notification permission...");
         const fcmToken = await requestNotificationPermission();
@@ -59,11 +62,13 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
         subscribedWithAuthRef.current = isAuthenticated;
       } catch (err) {
         console.error("[FCM] Error:", err);
+      } finally {
+        subscribingRef.current = false;
       }
     }
 
     setup();
-  }, [topics, isAuthenticated, getValidToken, enabled]);
+  }, [topics, isAuthenticated, getValidToken, enabled, idgroup]);
 
   // Foreground messages
   useEffect(() => {
