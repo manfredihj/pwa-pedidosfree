@@ -38,6 +38,17 @@ export async function requestNotificationPermission(): Promise<string | null> {
   return token;
 }
 
+export async function getCurrentToken(): Promise<string | null> {
+  if (Notification.permission !== "granted") return null;
+  const msg = getMessagingInstance();
+  if (!msg) return null;
+  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+  return getToken(msg, {
+    vapidKey,
+    serviceWorkerRegistration: await navigator.serviceWorker.getRegistration(),
+  });
+}
+
 export function onForegroundMessage(callback: (payload: unknown) => void): (() => void) | null {
   const msg = getMessagingInstance();
   if (!msg) return null;

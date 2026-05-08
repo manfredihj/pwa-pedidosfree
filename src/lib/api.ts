@@ -643,6 +643,10 @@ export async function subscribeToNotifications(token: string, topic: string, acc
   await api.post("/notifications/subscribe", { token, topic, platform: "pwa", device, os, standalone }, { headers });
 }
 
+export async function unsubscribeFromNotifications(token: string, topics: string[]): Promise<void> {
+  await api.post("/notifications/unsubscribe", { token, topics });
+}
+
 export async function trackPwaInstall(slug: string): Promise<void> {
   const { device, os } = getDeviceInfo();
   await api.post("/notifications/pwa-install", { slug, platform: "pwa", device, os });

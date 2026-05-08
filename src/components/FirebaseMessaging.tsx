@@ -1,20 +1,48 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
-import { subscribeToNotifications } from "@/lib/api";
+import { useEffect, useRef, createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { requestNotificationPermission, getCurrentToken, onForegroundMessage } from "@/lib/firebase";
+import { subscribeToNotifications, unsubscribeFromNotifications } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+
+const STORAGE_KEY = "pf_notifications";
+
+interface NotificationsContextValue {
+  enabled: boolean;
+  toggle: () => Promise<void>;
+  loading: boolean;
+}
+
+const NotificationsContext = createContext<NotificationsContextValue>({
+  enabled: false,
+  toggle: async () => {},
+  loading: false,
+});
+
+export function useNotifications() {
+  return useContext(NotificationsContext);
+}
 
 interface FirebaseMessagingProps {
   topics: string[];
+  children: ReactNode;
 }
 
-export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
+export default function FirebaseMessaging({ topics, children }: FirebaseMessagingProps) {
   const { getValidToken, isAuthenticated } = useAuth();
-  const subscribedRef = useRef(false);
+  const subscribedWithAuthRef = useRef<boolean | null>(null);
+  const [enabled, setEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEY) !== "disabled";
+  });
+  const [loading, setLoading] = useState(false);
+  const topicsRef = useRef(topics);
+  topicsRef.current = topics;
 
+  // Subscribe
   useEffect(() => {
-    if (subscribedRef.current || topics.length === 0) return;
+    if (!enabled || topics.length === 0) return;
+    if (subscribedWithAuthRef.current === isAuthenticated) return;
 
     async function setup() {
       try {
@@ -27,16 +55,18 @@ export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
         console.log("[FCM] Subscribing to topics:", topics, "authenticated:", !!accessToken);
         await Promise.all(topics.map((topic) => subscribeToNotifications(fcmToken, topic, accessToken)));
         console.log("[FCM] Subscribed successfully");
-        subscribedRef.current = true;
+        subscribedWithAuthRef.current = isAuthenticated;
       } catch (err) {
         console.error("[FCM] Error:", err);
       }
     }
 
     setup();
-  }, [topics, isAuthenticated, getValidToken]);
+  }, [topics, isAuthenticated, getValidToken, enabled]);
 
+  // Foreground messages
   useEffect(() => {
+    if (!enabled) return;
     const unsubscribe = onForegroundMessage((payload) => {
       const data = (payload as { notification?: { title?: string; body?: string } }).notification;
       if (data?.title) {
@@ -44,7 +74,36 @@ export default function FirebaseMessaging({ topics }: FirebaseMessagingProps) {
       }
     });
     return () => { unsubscribe?.(); };
-  }, []);
+  }, [enabled]);
 
-  return null;
+  const toggle = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (enabled) {
+        // Unsubscribe
+        const fcmToken = await getCurrentToken();
+        if (fcmToken && topicsRef.current.length > 0) {
+          await unsubscribeFromNotifications(fcmToken, topicsRef.current);
+        }
+        localStorage.setItem(STORAGE_KEY, "disabled");
+        subscribedWithAuthRef.current = null;
+        setEnabled(false);
+      } else {
+        // Subscribe
+        localStorage.removeItem(STORAGE_KEY);
+        setEnabled(true);
+        subscribedWithAuthRef.current = null; // Force re-subscribe
+      }
+    } catch (err) {
+      console.error("[FCM] Toggle error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [enabled]);
+
+  return (
+    <NotificationsContext value={{ enabled, toggle, loading }}>
+      {children}
+    </NotificationsContext>
+  );
 }

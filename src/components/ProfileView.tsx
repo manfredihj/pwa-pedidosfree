@@ -16,6 +16,9 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import Switch from "@mui/material/Switch";
+import { useNotifications } from "@/components/FirebaseMessaging";
 import LoginView from "@/components/LoginView";
 import RegisterView from "@/components/RegisterView";
 import RecoveryView from "@/components/RecoveryView";
@@ -31,6 +34,7 @@ interface ProfileViewProps {
 
 export default function ProfileView({ idgroup }: ProfileViewProps) {
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const { enabled: notificationsEnabled, toggle: toggleNotifications, loading: notificationsLoading } = useNotifications();
   const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
   const [screen, setScreen] = useState<ProfileScreen>("main");
 
@@ -127,6 +131,14 @@ export default function ProfileView({ idgroup }: ProfileViewProps) {
           </ListItemIcon>
           <ListItemText primary="Direcciones" />
           <ChevronRightIcon color="action" />
+        </ListItemButton>
+        <Divider variant="inset" component="li" />
+        <ListItemButton sx={{ px: 2 }} onClick={toggleNotifications} disabled={notificationsLoading}>
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <NotificationsOutlinedIcon />
+          </ListItemIcon>
+          <ListItemText primary="Notificaciones" secondary={notificationsEnabled ? "Activadas" : "Desactivadas"} />
+          <Switch checked={notificationsEnabled} disabled={notificationsLoading} />
         </ListItemButton>
       </List>
       <Divider />

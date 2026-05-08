@@ -98,7 +98,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
   }, [showCheckout, showCart, activeTab]);
 
   return (
-    <>
+    <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)}>
       <AppHeader tenant={tenant} onCartClick={handleCartClick} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (
@@ -130,8 +130,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
         <FloatingCartBar onClick={handleCartClick} />
       )}
       {!showCheckout && !showCart && <BottomNav value={activeTab} onChange={handleTabChange} />}
-      <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)} />
       <PwaInstallTracker slug={tenant.slug} />
-    </>
+    </FirebaseMessaging>
   );
 }
