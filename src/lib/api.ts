@@ -232,9 +232,9 @@ export async function authLogin(
   password: string,
   idgroup?: number,
 ): Promise<ApiResponse<AuthData>> {
-  const params = new URLSearchParams({ username, password });
-  if (idgroup) params.append("idgroup", String(idgroup));
-  const { data } = await api.post<ApiResponse<AuthData>>("/auth/login", params);
+  const body: Record<string, unknown> = { username, password };
+  if (idgroup) body.idgroup = idgroup;
+  const { data } = await api.post<ApiResponse<AuthData>>("/auth/login", body);
   return data;
 }
 
@@ -245,15 +245,14 @@ export async function authRegister(
   password: string,
   idgroup?: number,
 ): Promise<ApiResponse<AuthData>> {
-  const params = new URLSearchParams({ name, lastname, email, password });
-  if (idgroup) params.append("idgroup", String(idgroup));
-  const { data } = await api.post<ApiResponse<AuthData>>("/auth/register", params);
+  const body: Record<string, unknown> = { name, lastname, email, password };
+  if (idgroup) body.idgroup = idgroup;
+  const { data } = await api.post<ApiResponse<AuthData>>("/auth/register", body);
   return data;
 }
 
 export async function authRefresh(refreshToken: string): Promise<ApiResponse<AuthData>> {
-  const params = new URLSearchParams({ refresh_token: refreshToken });
-  const { data } = await api.post<ApiResponse<AuthData>>("/auth/refresh", params);
+  const { data } = await api.post<ApiResponse<AuthData>>("/auth/refresh", { refresh_token: refreshToken });
   return data;
 }
 
@@ -261,9 +260,9 @@ export async function authRecoveryPassword(
   email: string,
   idgroup?: number,
 ): Promise<ApiResponse<unknown>> {
-  const params = new URLSearchParams({ email });
-  if (idgroup) params.append("idgroup", String(idgroup));
-  const { data } = await api.post<ApiResponse<unknown>>("/auth/recovery-password", params);
+  const body: Record<string, unknown> = { email };
+  if (idgroup) body.idgroup = idgroup;
+  const { data } = await api.post<ApiResponse<unknown>>("/auth/recovery-password", body);
   return data;
 }
 
@@ -331,13 +330,7 @@ export async function getUserOrders(
   start = 0,
   limit = 20,
 ): Promise<Order[]> {
-  const params = new URLSearchParams({
-    iduser: String(iduser),
-    idgroup: String(idgroup),
-    start: String(start),
-    limit: String(limit),
-  });
-  const { data } = await api.post<ApiResponse<Order[]>>("/users/orders", params, {
+  const { data } = await api.post<ApiResponse<Order[]>>("/users/orders", { iduser: iduser, idgroup: idgroup, start, limit }, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data.data;
@@ -430,20 +423,7 @@ export async function createUserAddress(
   },
   token: string,
 ): Promise<ApiResponse<UserAddress>> {
-  const params = new URLSearchParams();
-  params.append("userid", String(fields.userid));
-  params.append("street", fields.street);
-  if (fields.streetnumber) params.append("streetnumber", fields.streetnumber);
-  if (fields.streetdpto) params.append("streetdpto", fields.streetdpto);
-  if (fields.streetbetween) params.append("streetbetween", fields.streetbetween);
-  if (fields.phone) params.append("phone", fields.phone);
-  if (fields.note) params.append("note", fields.note);
-  if (fields.latitude) params.append("latitude", fields.latitude);
-  if (fields.longitude) params.append("longitude", fields.longitude);
-  if (fields.fullname) params.append("fullname", fields.fullname);
-  if (fields.areaname) params.append("areaname", fields.areaname);
-  if (fields.placeid) params.append("placeid", fields.placeid);
-  const { data } = await api.post<ApiResponse<UserAddress>>("/users/address", params, {
+  const { data } = await api.post<ApiResponse<UserAddress>>("/users/address", fields, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data;
