@@ -86,6 +86,28 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
   const [error, setError] = useState<string | null>(null);
 
   const years = getCurrentYears();
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // Detect autofill (Google Pay / Chrome autocomplete)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!formRef.current) return;
+      const inputs = formRef.current.querySelectorAll<HTMLInputElement>("input");
+      inputs.forEach((input) => {
+        const ac = input.getAttribute("autocomplete");
+        if (ac === "cc-number" && input.value && input.value.replace(/\D/g, "") !== cardNumber) {
+          setCardNumber(input.value.replace(/\D/g, "").slice(0, cardNumberLength));
+        }
+        if (ac === "cc-name" && input.value && input.value !== cardholderName) {
+          setCardholderName(input.value);
+        }
+        if (ac === "cc-csc" && input.value && input.value !== securityCode) {
+          setSecurityCode(input.value.replace(/\D/g, "").slice(0, securityCodeLength));
+        }
+      });
+    }, 500);
+    return () => clearInterval(interval);
+  }, [cardNumber, cardholderName, securityCode, cardNumberLength, securityCodeLength]);
 
   // Init SDK v2
   useEffect(() => {
@@ -226,14 +248,15 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
       </Box>
       <Divider />
 
-      <Box sx={{ px: 2, pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+      <Box ref={formRef} sx={{ px: 2, pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
         {/* Card number */}
         <TextField
           label="Número de tarjeta"
           value={cardNumber}
           onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, cardNumberLength))}
           fullWidth
-          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: cardNumberLength } }}
+          autoComplete="cc-number"
+          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: cardNumberLength, autoComplete: "cc-number" } }}
           placeholder="1234 5678 9012 3456"
         />
 
@@ -263,8 +286,9 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
           value={cardholderName}
           onChange={(e) => setCardholderName(e.target.value)}
           fullWidth
+          autoComplete="cc-name"
           placeholder="JUAN PEREZ"
-          slotProps={{ htmlInput: { style: { textTransform: "uppercase" } } }}
+          slotProps={{ htmlInput: { style: { textTransform: "uppercase" }, autoComplete: "cc-name" } }}
         />
 
         {/* Doc type + number */}
@@ -295,7 +319,8 @@ export default function PaymentCardForm({ publicKey, onSuccess, onBack }: Paymen
           value={securityCode}
           onChange={(e) => setSecurityCode(e.target.value.replace(/\D/g, "").slice(0, securityCodeLength))}
           fullWidth
-          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: securityCodeLength } }}
+          autoComplete="cc-csc"
+          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: securityCodeLength, autoComplete: "cc-csc" } }}
           placeholder="CVV"
         />
 
