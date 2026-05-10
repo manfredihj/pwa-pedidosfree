@@ -22,6 +22,11 @@ export default function InstallBanner({ slug }: InstallBannerProps) {
 
   if (isInstalled || dismissed) return null;
 
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.setItem(`pf_install_dismissed_${slug}`, "true");
+  };
+
   // iOS: show manual instructions
   if (isIOS) {
     return (
@@ -35,23 +40,24 @@ export default function InstallBanner({ slug }: InstallBannerProps) {
           bgcolor: "primary.main",
           color: "white",
           borderRadius: 3,
-          p: 1.5,
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          p: 2,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
         }}
       >
-        <GetAppIcon />
-        <Typography variant="body2" sx={{ flex: 1, fontSize: "0.8rem" }}>
-          Instalá la app: tocá Compartir y luego &quot;Agregar a pantalla de inicio&quot;
-        </Typography>
-        <IconButton size="small" sx={{ color: "white" }} onClick={() => {
-          setDismissed(true);
-          localStorage.setItem(`pf_install_dismissed_${slug}`, "true");
-        }}>
+        <IconButton size="small" sx={{ position: "absolute", top: 4, right: 4, color: "rgba(255,255,255,0.7)" }} onClick={handleDismiss}>
           <CloseIcon fontSize="small" />
         </IconButton>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+          <GetAppIcon sx={{ fontSize: 32 }} />
+          <Box>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>
+              Instalá la app
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              Tocá Compartir y luego &quot;Agregar a pantalla de inicio&quot;
+            </Typography>
+          </Box>
+        </Box>
       </Box>
     );
   }
@@ -70,32 +76,34 @@ export default function InstallBanner({ slug }: InstallBannerProps) {
         bgcolor: "primary.main",
         color: "white",
         borderRadius: 3,
-        p: 1.5,
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+        p: 2,
+        boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
       }}
     >
-      <GetAppIcon />
-      <Typography variant="body2" sx={{ flex: 1, fontSize: "0.8rem", fontWeight: 600 }}>
-        Instalá la app para una mejor experiencia
-      </Typography>
-      <Button
-        size="small"
-        variant="contained"
-        color="secondary"
-        sx={{ borderRadius: 4, textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
-        onClick={installApp}
-      >
-        Instalar
-      </Button>
-      <IconButton size="small" sx={{ color: "white" }} onClick={() => {
-        setDismissed(true);
-        localStorage.setItem(`pf_install_dismissed_${slug}`, "true");
-      }}>
+      <IconButton size="small" sx={{ position: "absolute", top: 4, right: 4, color: "rgba(255,255,255,0.7)" }} onClick={handleDismiss}>
         <CloseIcon fontSize="small" />
       </IconButton>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+        <GetAppIcon sx={{ fontSize: 32 }} />
+        <Box>
+          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+            Instalá la app
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            Accedé más rápido y recibí notificaciones
+          </Typography>
+        </Box>
+      </Box>
+      <Button
+        fullWidth
+        variant="contained"
+        color="secondary"
+        size="large"
+        onClick={installApp}
+        sx={{ borderRadius: 6, fontWeight: 700, py: 1.2, textTransform: "none", fontSize: "1rem" }}
+      >
+        Instalar ahora
+      </Button>
     </Box>
   );
 }
