@@ -35,13 +35,15 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
   const subscribingRef = useRef(false);
   const [enabled, setEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem(STORAGE_KEY) !== "disabled";
+    // Only enabled if user previously accepted AND browser permission is granted
+    if (localStorage.getItem(STORAGE_KEY) === "disabled") return false;
+    return typeof Notification !== "undefined" && Notification.permission === "granted";
   });
   const [loading, setLoading] = useState(false);
   const topicsRef = useRef(topics);
   topicsRef.current = topics;
 
-  // Subscribe
+  // Auto-subscribe only if permission is already granted (user previously accepted)
   useEffect(() => {
     if (!enabled || topics.length === 0) return;
     if (subscribedWithAuthRef.current === isAuthenticated) return;
@@ -50,13 +52,11 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
     async function setup() {
       subscribingRef.current = true;
       try {
-        console.log("[FCM] Requesting notification permission...");
-        const fcmToken = await requestNotificationPermission();
-        console.log("[FCM] Token:", fcmToken ? fcmToken.substring(0, 20) + "..." : "null (permission denied)");
+        const fcmToken = await getCurrentToken();
         if (!fcmToken) return;
 
         const accessToken = await getValidToken() || undefined;
-        console.log("[FCM] Subscribing to topics:", topics, "authenticated:", !!accessToken);
+        console.log("[FCM] Auto-subscribing to topics:", topics);
         await Promise.all(topics.map((topic) => subscribeToNotifications(fcmToken, topic, idgroup, accessToken)));
         console.log("[FCM] Subscribed successfully");
         subscribedWithAuthRef.current = isAuthenticated;
@@ -70,7 +70,7 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
     setup();
   }, [topics, isAuthenticated, getValidToken, enabled, idgroup]);
 
-  // Foreground messages
+  // Foreground messages (only if permission granted)
   useEffect(() => {
     if (!enabled) return;
     const unsubscribe = onForegroundMessage((payload) => {
@@ -95,22 +95,29 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
         subscribedWithAuthRef.current = null;
         setEnabled(false);
       } else {
-        // Try to subscribe — request permission
+        // Request permission and subscribe
+        console.log("[FCM] Requesting notification permission...");
         const fcmToken = await requestNotificationPermission();
         if (!fcmToken) {
-          // Permission denied or failed
+          console.log("[FCM] Permission denied or failed");
           return;
         }
+        console.log("[FCM] Permission granted, subscribing...");
+        const accessToken = await getValidToken() || undefined;
+        await Promise.all(topicsRef.current.map((topic) =>
+          subscribeToNotifications(fcmToken, topic, idgroup, accessToken)
+        ));
         localStorage.removeItem(STORAGE_KEY);
+        subscribedWithAuthRef.current = isAuthenticated;
         setEnabled(true);
-        subscribedWithAuthRef.current = null; // Force re-subscribe
+        console.log("[FCM] Subscribed successfully");
       }
     } catch (err) {
       console.error("[FCM] Toggle error:", err);
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, getValidToken, isAuthenticated, idgroup]);
 
   return (
     <NotificationsContext value={{ enabled, toggle, loading }}>

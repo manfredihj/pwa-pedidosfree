@@ -1,7 +1,8 @@
 importScripts("https://www.gstatic.com/firebasejs/11.8.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-compat.js");
 
-const CACHE_NAME = "pedidosfree-v1";
+const CACHE_NAME = "pedidosfree-v2";
+const PRECACHE_URLS = ["/", "/icon-192x192.png"];
 let firebaseInitialized = false;
 
 function initFirebase(config) {
@@ -27,7 +28,10 @@ self.addEventListener("message", (event) => {
   }
 });
 
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+  );
   self.skipWaiting();
 });
 
@@ -40,6 +44,18 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Fetch handler — required for install prompt
+self.addEventListener("fetch", (event) => {
+  // Only handle GET requests
+  if (event.request.method !== "GET") return;
+
+  event.respondWith(
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then((cached) => cached || caches.match("/"))
+    )
+  );
 });
 
 self.addEventListener("push", (event) => {

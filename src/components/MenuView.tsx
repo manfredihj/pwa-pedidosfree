@@ -17,6 +17,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { buildImageProductThumbnail, getEntitySchedulesWeek, getEntityScheduleStatus, type Section, type Product, type GroupEntity, type ScheduleWeekItem, type ScheduleData } from "@/lib/api";
 import ProductDetail, { type CartItem } from "@/components/ProductDetail";
 import ServiceTypeTabs from "@/components/ServiceTypeTabs";
+import NotificationsBanner from "@/components/NotificationsBanner";
 import { useCart } from "@/lib/CartContext";
 
 interface MenuViewProps {
@@ -214,6 +215,9 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
           )}
         </Box>
       )}
+
+      {/* Notifications banner */}
+      <NotificationsBanner />
 
       {/* Category chips */}
       <Box

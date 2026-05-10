@@ -10,6 +10,7 @@ import CheckoutView from "@/components/CheckoutView";
 import PedidosView from "@/components/PedidosView";
 import ProfileView from "@/components/ProfileView";
 import FloatingCartBar from "@/components/FloatingCartBar";
+import InstallBanner from "@/components/InstallBanner";
 import FirebaseMessaging from "@/components/FirebaseMessaging";
 import PwaInstallTracker from "@/components/PwaInstallTracker";
 import { useAuth } from "@/lib/AuthContext";
@@ -128,7 +129,10 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
         )}
       </Box>
       {!showCheckout && !showCart && activeTab === "menu" && (
-        <FloatingCartBar onClick={handleCartClick} />
+        <>
+          <InstallBanner slug={tenant.slug} />
+          <FloatingCartBar onClick={handleCartClick} />
+        </>
       )}
       {!showCheckout && !showCart && <BottomNav value={activeTab} onChange={handleTabChange} />}
       <PwaInstallTracker slug={tenant.slug} />
