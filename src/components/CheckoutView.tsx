@@ -126,7 +126,7 @@ export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }:
       .catch(() => setScheduleData(null));
   }, [entity.identity, serviceType]);
 
-  // Load saved cards
+  // Load saved cards (only if MercadoPago payment type is active)
   useEffect(() => {
     if (!hasCardPayment || !user) return;
     getValidToken().then((token) => {
@@ -448,13 +448,16 @@ export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }:
 
   // Step: select address (delivery only)
   if (step === "address" && isDelivery) {
+    const zones = entity.entitydeliveryzones || [];
     return (
       <AddressSelect
-        entityDeliveryZones={entity.entitydeliveryzones || []}
+        entityDeliveryZones={zones}
         onSelect={(address, zoneId) => {
-          const zone = (entity.entitydeliveryzones || []).find(
-            (z) => z.identitydeliveryzone === zoneId
-          );
+          if (zones.length > 0 && !zoneId) {
+            // Should not happen — AddressSelect validates, but guard anyway
+            return;
+          }
+          const zone = zones.find((z) => z.identitydeliveryzone === zoneId);
           handleAddressSelected(address, zoneId, zone?.shippingcost ?? 0);
         }}
         onBack={onBack}
@@ -604,7 +607,7 @@ export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }:
           })}
 
           {/* Saved cards */}
-          {savedCards.map((card) => {
+          {hasCardPayment && savedCards.map((card) => {
             const isSelected = selectedCard?.id === card.id && paymentType === "PAYMENT-CREDIT-CARD-MP";
             return (
               <Box
@@ -659,7 +662,7 @@ export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }:
           })}
 
           {/* New card (not yet saved) */}
-          {cardInfo?.isNew && (
+          {hasCardPayment && cardInfo?.isNew && (
             <Box
               sx={{
                 minWidth: 150,
