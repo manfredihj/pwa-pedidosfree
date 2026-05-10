@@ -61,16 +61,22 @@ export default function AddressSelect({ entityDeliveryZones, onSelect, onBack }:
     const addr = addresses.find((a) => String(a.iduseraddress) === selected);
     if (!addr) return;
 
-    if (entityDeliveryZones.length > 0 && addr.latitude && addr.longitude) {
-      const result = checkDeliveryZone(parseFloat(addr.latitude), parseFloat(addr.longitude), entityDeliveryZones);
-      if (!result.isInside) {
-        setConfirmError("Esta dirección está fuera de la zona de entrega.");
-        return;
-      }
-      onSelect(addr, result.identitydeliveryzone);
-    } else {
-      onSelect(addr, null);
+    if (entityDeliveryZones.length === 0) {
+      setConfirmError("El local no tiene zonas de delivery configuradas.");
+      return;
     }
+
+    if (!addr.latitude || !addr.longitude) {
+      setConfirmError("La dirección no tiene ubicación. Eliminala y agregala de nuevo.");
+      return;
+    }
+
+    const result = checkDeliveryZone(parseFloat(addr.latitude), parseFloat(addr.longitude), entityDeliveryZones);
+    if (!result.isInside) {
+      setConfirmError("Esta dirección está fuera de la zona de entrega.");
+      return;
+    }
+    onSelect(addr, result.identitydeliveryzone);
   };
 
   const handleDelete = async (addressId: number) => {

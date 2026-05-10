@@ -108,6 +108,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
             entityId={entity.identity}
             availableServices={entity.attributesbuilder.typeofserviceorder.filter((s) => s.active)}
             entityDiscounts={entity.entitydiscounts || []}
+            hasDeliveryZones={(entity.entitydeliveryzones || []).length > 0}
             onBack={handleCartBack}
             onRequireLogin={handleRequireLogin}
             onCheckout={handleCheckout}

@@ -61,7 +61,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     : false;
   const canOrder = isOpen || hasSchedules;
 
-  const headerImage = entity.entityimages.find((img) => img.keyname === "Header-mobile");
+  const headerImage = entity.entityimages.find((img) => img.keyname === "header_mobile");
   const logoImage = entity.entityimages.find((img) => img.keyname === "Logo");
 
   const infoMapRef = useRef<HTMLDivElement>(null);

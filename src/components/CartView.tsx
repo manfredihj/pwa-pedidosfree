@@ -24,12 +24,13 @@ interface CartViewProps {
   entityId: number;
   availableServices: { name: string; active: boolean }[];
   entityDiscounts: EntityDiscount[];
+  hasDeliveryZones: boolean;
   onBack?: () => void;
   onRequireLogin?: () => void;
   onCheckout?: () => void;
 }
 
-export default function CartView({ entityId, availableServices, entityDiscounts, onBack, onRequireLogin, onCheckout }: CartViewProps) {
+export default function CartView({ entityId, availableServices, entityDiscounts, hasDeliveryZones, onBack, onRequireLogin, onCheckout }: CartViewProps) {
   const { items, total, serviceType, removeItem } = useCart();
   const { isAuthenticated } = useAuth();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
