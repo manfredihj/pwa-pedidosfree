@@ -95,7 +95,12 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
         subscribedWithAuthRef.current = null;
         setEnabled(false);
       } else {
-        // Subscribe
+        // Try to subscribe — request permission
+        const fcmToken = await requestNotificationPermission();
+        if (!fcmToken) {
+          // Permission denied or failed
+          return;
+        }
         localStorage.removeItem(STORAGE_KEY);
         setEnabled(true);
         subscribedWithAuthRef.current = null; // Force re-subscribe
