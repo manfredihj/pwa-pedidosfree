@@ -133,11 +133,28 @@ export default function ProfileView({ idgroup }: ProfileViewProps) {
           <ChevronRightIcon color="action" />
         </ListItemButton>
         <Divider variant="inset" component="li" />
-        <ListItemButton sx={{ px: 2 }} onClick={toggleNotifications} disabled={notificationsLoading}>
+        <ListItemButton
+          sx={{ px: 2 }}
+          onClick={async () => {
+            if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+              alert("Las notificaciones están bloqueadas. Habilitálas desde la configuración del navegador (candado al lado de la URL).");
+              return;
+            }
+            await toggleNotifications();
+          }}
+          disabled={notificationsLoading}
+        >
           <ListItemIcon sx={{ minWidth: 40 }}>
             <NotificationsOutlinedIcon />
           </ListItemIcon>
-          <ListItemText primary="Notificaciones" secondary={notificationsEnabled ? "Activadas" : "Desactivadas"} />
+          <ListItemText
+            primary="Notificaciones"
+            secondary={
+              typeof Notification !== "undefined" && Notification.permission === "denied"
+                ? "Bloqueadas por el navegador"
+                : notificationsEnabled ? "Activadas" : "Desactivadas"
+            }
+          />
           <Switch checked={notificationsEnabled} disabled={notificationsLoading} />
         </ListItemButton>
       </List>

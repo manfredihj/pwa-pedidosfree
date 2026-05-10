@@ -79,7 +79,11 @@ export default function CheckoutView({ entity, idgroup, onBack, onGoToPedidos }:
 
   // Payment type — exclude online card payments from carousel
   const allActivePaymentTypes = entity.attributesbuilder.typeofpayment.filter((p) => p.active);
-  const hasCardPayment = allActivePaymentTypes.some((p) => p.name === "PAYMENT-CREDIT-CARD-MP");
+  const hasCardPayment = allActivePaymentTypes.some(
+    (p) => p.name === "PAYMENT-CREDIT-CARD-MP" && p.subtype === "PAYMENT-ONLINE"
+  ) && (entity.entitypaymentconfigs || []).some(
+    (c) => c.attributename === "PAYMENT-CREDIT-CARD-MP"
+  );
   const activePaymentTypes = allActivePaymentTypes.filter((p) => p.subtype !== "PAYMENT-ONLINE");
   const [paymentType, setPaymentType] = useState(activePaymentTypes[0]?.name || "");
 

@@ -23,8 +23,13 @@ function getMessagingInstance(): Messaging | null {
 }
 
 export async function requestNotificationPermission(): Promise<string | null> {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
+
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return null;
+
+  // Wait for service worker to be ready
+  const swRegistration = await navigator.serviceWorker.ready;
 
   const msg = getMessagingInstance();
   if (!msg) return null;
@@ -32,20 +37,21 @@ export async function requestNotificationPermission(): Promise<string | null> {
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
   const token = await getToken(msg, {
     vapidKey,
-    serviceWorkerRegistration: await navigator.serviceWorker.getRegistration(),
+    serviceWorkerRegistration: swRegistration,
   });
 
   return token;
 }
 
 export async function getCurrentToken(): Promise<string | null> {
-  if (Notification.permission !== "granted") return null;
+  if (!("Notification" in window) || Notification.permission !== "granted") return null;
   const msg = getMessagingInstance();
   if (!msg) return null;
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+  const swRegistration = await navigator.serviceWorker.ready;
   return getToken(msg, {
     vapidKey,
-    serviceWorkerRegistration: await navigator.serviceWorker.getRegistration(),
+    serviceWorkerRegistration: swRegistration,
   });
 }
 
