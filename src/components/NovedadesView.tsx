@@ -75,7 +75,7 @@ export default function NovedadesView({ entityId, basepathimage }: NovedadesView
             />
           )}
           <CardContent>
-            <Typography variant="subtitle1" fontWeight="bold">
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
               {n.title}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
