@@ -24,8 +24,8 @@ export default function BottomNav({ value, onChange }: BottomNavProps) {
         showLabels
       >
         <BottomNavigationAction value="menu" label="Menu" icon={<RestaurantMenuIcon />} />
-        <BottomNavigationAction value="novedades" label="Novedades" icon={<NewReleasesOutlinedIcon />} />
         <BottomNavigationAction value="pedidos" label="Pedidos" icon={<ReceiptLongIcon />} />
+        <BottomNavigationAction value="novedades" label="Novedades" icon={<NewReleasesOutlinedIcon />} />
         <BottomNavigationAction value="perfil" label="Perfil" icon={<PersonOutlineIcon />} />
       </BottomNavigation>
     </Paper>
