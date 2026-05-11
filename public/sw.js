@@ -4,19 +4,35 @@ importScripts("https://www.gstatic.com/firebasejs/11.8.1/firebase-messaging-comp
 const CACHE_NAME = "pedidosfree-v2";
 const PRECACHE_URLS = ["/", "/icon-192x192.png"];
 let firebaseInitialized = false;
+let tenantIcon = "/icon-192x192.png";
+
+function extractNotificationData(payload) {
+  // Firebase can send data in notification, data, or both
+  const n = payload.notification || {};
+  const d = payload.data || {};
+  return {
+    title: n.title || d.title || "Nueva notificacion",
+    body: n.body || d.description || d.body || "",
+    icon: d.icon || n.icon || tenantIcon,
+    image: d.has_image === "true" && d.url_image ? d.url_image : undefined,
+    url: d.url || d.link || "/",
+  };
+}
 
 function initFirebase(config) {
   if (firebaseInitialized || !config?.apiKey) return;
   firebase.initializeApp(config);
   const messaging = firebase.messaging();
   messaging.onBackgroundMessage((payload) => {
-    const data = payload.notification || {};
-    self.registration.showNotification(data.title || "Nueva notificacion", {
-      body: data.body || "",
-      icon: data.icon || "/icon-192x192.png",
+    console.log("[SW] onBackgroundMessage payload:", JSON.stringify(payload));
+    const { title, body, icon, image, url } = extractNotificationData(payload);
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      image,
       badge: "/icon-192x192.png",
       vibrate: [100, 50, 100],
-      data: { url: payload.data?.url || "/" },
+      data: { url },
     });
   });
   firebaseInitialized = true;
@@ -25,6 +41,9 @@ function initFirebase(config) {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "FIREBASE_CONFIG") {
     initFirebase(event.data.config);
+  }
+  if (event.data?.type === "TENANT_ICON") {
+    tenantIcon = event.data.icon || "/icon-192x192.png";
   }
 });
 
@@ -48,9 +67,7 @@ self.addEventListener("activate", (event) => {
 
 // Fetch handler — required for install prompt
 self.addEventListener("fetch", (event) => {
-  // Only handle GET requests
   if (event.request.method !== "GET") return;
-
   event.respondWith(
     fetch(event.request).catch(() =>
       caches.match(event.request).then((cached) => cached || caches.match("/"))
@@ -59,20 +76,39 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: data.icon || "/icon-192x192.png",
+  if (!event.data) return;
+  console.log("[SW] push payload:", event.data.text());
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { data: { title: event.data.text() } };
+  }
+  const { title, body, icon, image, url } = extractNotificationData(payload);
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      image,
       badge: "/icon-192x192.png",
       vibrate: [100, 50, 100],
-      data: { url: data.url || "/" },
-    };
-    event.waitUntil(self.registration.showNotification(data.title, options));
-  }
+      data: { url },
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data.url || "/"));
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // Focus existing window if available
+      for (const client of windowClients) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });

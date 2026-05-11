@@ -99,7 +99,11 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
   }, [showCheckout, showCart, activeTab]);
 
   return (
-    <FirebaseMessaging topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)} idgroup={tenant.group.idgroup}>
+    <FirebaseMessaging
+      topics={[tenant.group.firebasetopic, entity.firebasetopic].filter(Boolean)}
+      idgroup={tenant.group.idgroup}
+      tenantIcon={tenant.group.groupimages.find((img) => img.keyname === "icon_192_x_192_pwa")?.path}
+    >
       <AppHeader tenant={tenant} onCartClick={handleCartClick} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (

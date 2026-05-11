@@ -7,6 +7,7 @@ export interface Tenant {
   theme: {
     primaryColor: string;
     secondaryColor: string;
+    backgroundColor?: string;
   };
 }
 

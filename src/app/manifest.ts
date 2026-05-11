@@ -13,6 +13,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   let name = "PedidosFree";
   let description = "Pedidos online para tu restaurante";
   let themeColor = "#d32f2f";
+  let backgroundColor = "#ffffff";
   let icon192 = "/icon-192x192.png";
   let icon512 = "/icon-512x512.png";
 
@@ -21,6 +22,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     name = tenant.group.name || name;
     description = tenant.group.description || description;
     themeColor = tenant.theme.primaryColor || themeColor;
+    backgroundColor = tenant.theme.backgroundColor || themeColor;
 
     const pwaIcon192 = tenant.group.groupimages.find(
       (img) => img.keyname === "icon_192_x_192_pwa"
@@ -40,7 +42,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     description,
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
+    background_color: backgroundColor,
     theme_color: themeColor,
     icons: [
       {

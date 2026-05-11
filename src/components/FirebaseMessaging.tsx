@@ -26,10 +26,11 @@ export function useNotifications() {
 interface FirebaseMessagingProps {
   topics: string[];
   idgroup: number;
+  tenantIcon?: string;
   children: ReactNode;
 }
 
-export default function FirebaseMessaging({ topics, idgroup, children }: FirebaseMessagingProps) {
+export default function FirebaseMessaging({ topics, idgroup, tenantIcon, children }: FirebaseMessagingProps) {
   const { getValidToken, isAuthenticated } = useAuth();
   const subscribingRef = useRef(false);
   const [enabled, setEnabled] = useState(() => {
@@ -41,6 +42,14 @@ export default function FirebaseMessaging({ topics, idgroup, children }: Firebas
   const [loading, setLoading] = useState(false);
   const topicsRef = useRef(topics);
   topicsRef.current = topics;
+
+  // Send tenant icon to SW
+  useEffect(() => {
+    if (!tenantIcon || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.active?.postMessage({ type: "TENANT_ICON", icon: tenantIcon });
+    });
+  }, [tenantIcon]);
 
   // Auto-subscribe on every app load if permission is granted (keeps backend table updated)
   useEffect(() => {

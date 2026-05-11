@@ -19,6 +19,7 @@ export interface TenantData {
   theme: {
     primaryColor: string;
     secondaryColor: string;
+    backgroundColor?: string;
   };
 }
 

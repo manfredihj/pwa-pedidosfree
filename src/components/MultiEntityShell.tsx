@@ -17,6 +17,7 @@ export default function MultiEntityShell({ tenant }: MultiEntityShellProps) {
     <FirebaseMessaging
       topics={[tenant.group.firebasetopic].filter(Boolean)}
       idgroup={tenant.group.idgroup}
+      tenantIcon={tenant.group.groupimages.find((img) => img.keyname === "icon_192_x_192_pwa")?.path}
     >
       <AppHeader tenant={tenant} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
