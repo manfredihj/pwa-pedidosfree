@@ -617,6 +617,21 @@ export async function removePaymentCard(
   return data;
 }
 
+// --- Novedades ---
+
+export interface Novedad {
+  idnotification: number;
+  title: string;
+  description: string;
+  imagepath: string;
+  insertdate: string;
+}
+
+export async function fetchNovedades(entityId: number): Promise<Novedad[]> {
+  const { data } = await api.get<ApiResponse<Novedad[]>>(`/entities/${entityId}/notifications`);
+  return data.data;
+}
+
 // --- Notifications ---
 
 function getDeviceInfo() {

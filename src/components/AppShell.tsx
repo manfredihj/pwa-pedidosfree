@@ -7,6 +7,7 @@ import BottomNav, { type TabValue } from "@/components/BottomNav";
 import MenuView from "@/components/MenuView";
 import CartView from "@/components/CartView";
 import CheckoutView from "@/components/CheckoutView";
+import NovedadesView from "@/components/NovedadesView";
 import PedidosView from "@/components/PedidosView";
 import ProfileView from "@/components/ProfileView";
 import FloatingCartBar from "@/components/FloatingCartBar";
@@ -122,6 +123,9 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
           <>
             {activeTab === "menu" && (
               <MenuView sections={sections} basepathimage={entity.basepathimage} entity={entity} />
+            )}
+            {activeTab === "novedades" && (
+              <NovedadesView entityId={entity.identity} basepathimage={entity.basepathimage} />
             )}
             {activeTab === "pedidos" && (
               <PedidosView idgroup={tenant.group.idgroup} />
