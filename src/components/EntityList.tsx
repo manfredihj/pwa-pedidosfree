@@ -22,10 +22,8 @@ export default function EntityList({ entities, groupImages, onSelect }: EntityLi
       </Typography>
       {entities.map((entity) => {
         const logo = entity.entityimages.find((img) => img.keyname === "Logo");
-        const headerImg =
-          entity.entityimages.find((img) => img.keyname === "header_mobile") ??
-          groupImages?.find((img) => img.keyname === "header_mobile") ??
-          logo;
+        const headerImg = entity.entityimages.find((img) => img.keyname === "header_mobile");
+        const hasHeader = !!headerImg;
         const isOpen = entity.scheduledata.status.isopen;
         const hasOnlinePayment = entity.attributesbuilder.typeofpayment?.some(
           (p) => p.subtype === "PAYMENT-ONLINE" && p.active !== false,
@@ -37,14 +35,25 @@ export default function EntityList({ entities, groupImages, onSelect }: EntityLi
               {/* Header image */}
               <Box
                 sx={{
-                  height: 160,
-                  backgroundImage: headerImg ? `url(${headerImg.path})` : undefined,
-                  backgroundColor: headerImg ? undefined : "grey.300",
+                  height: hasHeader ? 160 : 100,
+                  backgroundImage: hasHeader ? `url(${headerImg.path})` : undefined,
+                  backgroundColor: hasHeader ? undefined : "primary.main",
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   position: "relative",
+                  display: hasHeader ? "block" : "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
+                {!hasHeader && logo && (
+                  <Box
+                    component="img"
+                    src={logo.path}
+                    alt={entity.name}
+                    sx={{ height: 60, objectFit: "contain" }}
+                  />
+                )}
                 {/* Status chip over image */}
                 <Chip
                   label={isOpen ? "Abierto" : "Cerrado"}
