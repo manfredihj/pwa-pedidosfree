@@ -14,6 +14,7 @@ import AppShell from "@/components/AppShell";
 import EntityList from "@/components/EntityList";
 import FirebaseMessaging from "@/components/FirebaseMessaging";
 import NotificationsBanner from "@/components/NotificationsBanner";
+import InstallBanner from "@/components/InstallBanner";
 import PwaInstallTracker from "@/components/PwaInstallTracker";
 import { useCart } from "@/lib/CartContext";
 import { getEntitySections } from "@/lib/api";
@@ -130,6 +131,7 @@ export default function MultiEntityShell({ tenant }: MultiEntityShellProps) {
           <EntityList entities={tenant.group.entities} onSelect={handleSelectEntity} />
         )}
       </Box>
+      <InstallBanner slug={tenant.slug} />
       <PwaInstallTracker slug={tenant.slug} />
     </FirebaseMessaging>
   );
