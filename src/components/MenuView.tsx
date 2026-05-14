@@ -88,7 +88,8 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
   const hasSchedules = scheduleData
     ? Object.values(scheduleData.schedules).some((s) => s.length > 0)
     : false;
-  const canOrder = isOpen || hasSchedules;
+  const isOnDemand = scheduleData?.ondemand === true;
+  const canOrder = (isOpen || hasSchedules) && !isOnDemand;
 
   const headerImage = entity.entityimages.find((img) => img.keyname === "header_mobile");
   const logoImage = entity.entityimages.find((img) => img.keyname === "Logo");

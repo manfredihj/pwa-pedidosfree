@@ -365,6 +365,7 @@ export interface ScheduleData {
   schedules: Record<string, ScheduleItem[]>;
   message: string;
   messagesecondary: string;
+  ondemand?: boolean;
 }
 
 export async function getEntityScheduleStatus(entityId: number): Promise<ScheduleData> {
