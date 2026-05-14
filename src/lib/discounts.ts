@@ -147,7 +147,8 @@ export function getApplicableDiscounts(
   }
 
   // 2. Non-exclusive discounts — all that apply
-  const noExclusiveDiscounts = discounts.filter((d) => d.markpromoas === "NO_EXCLUSIVE");
+  // Discounts without markpromoas are treated as non-exclusive
+  const noExclusiveDiscounts = discounts.filter((d) => d.markpromoas === "NO_EXCLUSIVE" || !d.markpromoas);
 
   for (const discount of noExclusiveDiscounts) {
     if (isAppliedDiscount(discount, subtotal, paymentType, serviceCode, identitySchedule, items)) {

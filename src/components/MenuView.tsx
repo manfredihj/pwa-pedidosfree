@@ -6,7 +6,10 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import ButtonBase from "@mui/material/ButtonBase";
+import Alert from "@mui/material/Alert";
+import Card from "@mui/material/Card";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -70,6 +73,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     return () => window.removeEventListener("popstate", handlePopState);
   }, [selectedProduct]);
 
+  const [discountsOpen, setDiscountsOpen] = useState(false);
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [weekSchedule, setWeekSchedule] = useState<ScheduleWeekItem[] | null>(null);
@@ -217,31 +221,93 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
 
       {/* Schedule status banner */}
       {!isOpen && scheduleData && (
-        <Box
+        <Alert
+          severity={canOrder ? "info" : "error"}
+          sx={{ mx: 2, mt: 1, borderRadius: 2 }}
+        >
+          <Typography component="span" variant="body2" sx={{ fontWeight: 600, display: "block" }}>
+            {scheduleData.message || "Local cerrado"}
+          </Typography>
+          {scheduleData.messagesecondary && (
+            <Typography component="span" variant="body2" sx={{ display: "block" }}>
+              {scheduleData.messagesecondary}
+            </Typography>
+          )}
+        </Alert>
+      )}
+
+      {/* Notifications banner */}
+      <NotificationsBanner />
+
+      {/* Discounts banner */}
+      {(entity.entitydiscounts?.length ?? 0) > 0 && (
+        <Card
+          onClick={() => setDiscountsOpen(true)}
           sx={{
             mx: 2,
             mt: 1,
             px: 2,
             py: 1.5,
-            bgcolor: canOrder ? "warning.light" : "error.light",
-            color: canOrder ? "warning.contrastText" : "error.contrastText",
+            bgcolor: "error.main",
+            color: "error.contrastText",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            cursor: "pointer",
             borderRadius: 2,
-            textAlign: "center",
           }}
+          elevation={2}
         >
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {scheduleData.message || "Local cerrado"}
+          <LocalOfferIcon sx={{ fontSize: 20 }} />
+          <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>
+            {entity.entitydiscounts![0].description}
           </Typography>
-          {scheduleData.messagesecondary && (
-            <Typography variant="caption">
-              {scheduleData.messagesecondary}
+          {entity.entitydiscounts!.length > 1 && (
+            <Typography variant="caption" sx={{ opacity: 0.85, textDecoration: "underline" }}>
+              +{entity.entitydiscounts!.length - 1} más
             </Typography>
           )}
-        </Box>
+        </Card>
       )}
 
-      {/* Notifications banner */}
-      <NotificationsBanner />
+      {/* Discounts modal */}
+      <Dialog open={discountsOpen} onClose={() => setDiscountsOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ bgcolor: "error.main", color: "error.contrastText", display: "flex", justifyContent: "space-between", alignItems: "center", pr: 1, fontWeight: 700 }}>
+          Descuentos
+          <IconButton onClick={() => setDiscountsOpen(false)} size="small" sx={{ color: "error.contrastText" }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2 }}>
+          {entity.entitydiscounts?.map((d) => (
+            <Card key={d.identitydiscount} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {d.description}
+              </Typography>
+              {d.markpromoas === "NO_EXCLUSIVE" && (
+                <Typography variant="body2" color="text.secondary">
+                  Acumulable con otras promociones.
+                </Typography>
+              )}
+              {d.markpromoas === "EXCLUSIVE" && (
+                <Typography variant="body2" color="text.secondary">
+                  No acumulable con otras promociones.
+                </Typography>
+              )}
+              {d.amountmin != null && d.amountmin > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  Monto mínimo: ${d.amountmin.toLocaleString("es-AR")}
+                </Typography>
+              )}
+              {d.enddate && (
+                <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5, textAlign: "right" }}>
+                  Finaliza: {new Date(d.enddate).toLocaleDateString("es-AR")}
+                </Typography>
+              )}
+            </Card>
+          ))}
+        </DialogContent>
+      </Dialog>
 
       {/* Category chips */}
       <Box

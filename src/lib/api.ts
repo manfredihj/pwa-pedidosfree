@@ -44,13 +44,16 @@ export interface EntityDiscount {
   description: string;
   percentage: number;
   amountmin: number | null;
-  markpromoas: "EXCLUSIVE" | "NO_EXCLUSIVE";
+  markpromoas?: "EXCLUSIVE" | "NO_EXCLUSIVE";
   discounttype: { code: "PERC_CART" | "PERMANENT_CART" | "PERC_ITEM"; [key: string]: unknown };
   conditionspayments: string | null; // "ALL" or "CASH;CARD;..." separated by ;
   conditionstypeorder: string | null; // "ALL" or "DELIVERY;TAKE-AWAY"
   conditionscustomers: string | null;
   conditionsitems: string | null; // "ALL" or product ids separated by ;
   conditionstime: string | null; // "ALL" or schedule ids separated by ;
+  initdate?: string;
+  enddate?: string;
+  status?: string;
   [key: string]: unknown;
 }
 

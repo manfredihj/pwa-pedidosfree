@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -13,8 +13,11 @@ import { useNotifications } from "@/components/FirebaseMessaging";
 export default function NotificationsBanner() {
   const { enabled, toggle, loading } = useNotifications();
   const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (enabled || dismissed) return null;
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted || enabled || dismissed) return null;
 
   return (
     <Box
