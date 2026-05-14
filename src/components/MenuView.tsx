@@ -46,27 +46,23 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     addOrderDetail(item.product, item.quantity, item.notes, item.orderdetailgroups);
   }, [addOrderDetail]);
 
-  const closedByButton = useRef(false);
-
   const openProductDetail = useCallback((product: Product) => {
     window.history.pushState({ screen: "product" }, "");
     setSelectedProduct(product);
   }, []);
 
   const closeProductDetail = useCallback(() => {
-    closedByButton.current = true;
+    // Replace the "product" history entry instead of going back,
+    // so it doesn't trigger popstate handlers up the tree
     setSelectedProduct(null);
-    window.history.back();
+    window.history.replaceState(null, "");
   }, []);
 
   // Close product detail on browser back
   useEffect(() => {
-    const handlePopState = () => {
-      if (closedByButton.current) {
-        closedByButton.current = false;
-        return;
-      }
+    const handlePopState = (e: PopStateEvent) => {
       if (selectedProduct) {
+        e.stopImmediatePropagation();
         setSelectedProduct(null);
       }
     };
