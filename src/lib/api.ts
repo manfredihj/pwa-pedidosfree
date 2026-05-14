@@ -113,6 +113,8 @@ export interface GroupEntity {
     [key: string]: unknown;
   }[];
   firebasetopic: string;
+  area: { idarea: number; name: string; city: { idcity: number; name: string } };
+  time_zone_city: string;
 }
 
 export interface Group {

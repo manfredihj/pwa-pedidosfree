@@ -22,9 +22,10 @@ interface AppShellProps {
   tenant: Tenant;
   sections: Section[];
   entity: GroupEntity;
+  onBack?: () => void;
 }
 
-export default function AppShell({ tenant, sections, entity }: AppShellProps) {
+export default function AppShell({ tenant, sections, entity, onBack }: AppShellProps) {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabValue>("menu");
   const [showCheckout, setShowCheckout] = useState(false);
@@ -105,7 +106,7 @@ export default function AppShell({ tenant, sections, entity }: AppShellProps) {
       idgroup={tenant.group.idgroup}
       tenantIcon={tenant.group.groupimages.find((img) => img.keyname === "icon_192_x_192_pwa")?.path}
     >
-      <AppHeader tenant={tenant} onCartClick={handleCartClick} />
+      <AppHeader tenant={tenant} onCartClick={handleCartClick} onBack={onBack} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (
           <CheckoutView entity={entity} idgroup={tenant.group.idgroup} onBack={handleCheckoutBack} onGoToPedidos={handleGoToPedidos} />
