@@ -46,6 +46,34 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
     addOrderDetail(item.product, item.quantity, item.notes, item.orderdetailgroups);
   }, [addOrderDetail]);
 
+  const closedByButton = useRef(false);
+
+  const openProductDetail = useCallback((product: Product) => {
+    window.history.pushState({ screen: "product" }, "");
+    setSelectedProduct(product);
+  }, []);
+
+  const closeProductDetail = useCallback(() => {
+    closedByButton.current = true;
+    setSelectedProduct(null);
+    window.history.back();
+  }, []);
+
+  // Close product detail on browser back
+  useEffect(() => {
+    const handlePopState = () => {
+      if (closedByButton.current) {
+        closedByButton.current = false;
+        return;
+      }
+      if (selectedProduct) {
+        setSelectedProduct(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedProduct]);
+
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [weekSchedule, setWeekSchedule] = useState<ScheduleWeekItem[] | null>(null);
@@ -283,7 +311,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
               <Box key={product.idproduct}>
                 <ButtonBase
                   disabled={!canOrder}
-                  onClick={() => setSelectedProduct(product)}
+                  onClick={() => openProductDetail(product)}
                   sx={{
                     display: "flex",
                     width: "100%",
@@ -360,7 +388,7 @@ export default function MenuView({ sections, basepathimage, entity }: MenuViewPr
         <ProductDetail
           product={selectedProduct}
           basepathimage={basepathimage}
-          onClose={() => setSelectedProduct(null)}
+          onClose={closeProductDetail}
           onAddToCart={handleAddToCart}
         />
       )}

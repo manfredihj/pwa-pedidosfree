@@ -128,7 +128,7 @@ export default function MultiEntityShell({ tenant }: MultiEntityShellProps) {
             <CircularProgress />
           </Box>
         ) : (
-          <EntityList entities={tenant.group.entities} onSelect={handleSelectEntity} />
+          <EntityList entities={tenant.group.entities} groupImages={tenant.group.groupimages} onSelect={handleSelectEntity} />
         )}
       </Box>
       <InstallBanner slug={tenant.slug} />
