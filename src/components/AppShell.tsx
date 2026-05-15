@@ -106,7 +106,7 @@ export default function AppShell({ tenant, sections, entity, onBack }: AppShellP
       idgroup={tenant.group.idgroup}
       tenantIcon={tenant.group.groupimages.find((img) => img.keyname === "icon_192_x_192_pwa")?.path}
     >
-      <AppHeader tenant={tenant} onCartClick={handleCartClick} onBack={onBack} />
+      <AppHeader tenant={tenant} title={onBack ? entity.name : undefined} onCartClick={handleCartClick} onBack={onBack} />
       <Box component="main" sx={{ flex: 1, pb: 8 }}>
         {showCheckout ? (
           <CheckoutView entity={entity} idgroup={tenant.group.idgroup} onBack={handleCheckoutBack} onGoToPedidos={handleGoToPedidos} />

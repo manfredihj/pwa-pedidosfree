@@ -12,11 +12,12 @@ import { useCart } from "@/lib/CartContext";
 
 interface AppHeaderProps {
   tenant: Tenant;
+  title?: string;
   onCartClick?: () => void;
   onBack?: () => void;
 }
 
-export default function AppHeader({ tenant, onCartClick, onBack }: AppHeaderProps) {
+export default function AppHeader({ tenant, title, onCartClick, onBack }: AppHeaderProps) {
   const { itemCount } = useCart();
 
   return (
@@ -28,7 +29,7 @@ export default function AppHeader({ tenant, onCartClick, onBack }: AppHeaderProp
           </IconButton>
         )}
         <Typography variant="h6" component="h1" sx={{ flexGrow: 1, fontWeight: 700 }}>
-          {tenant.group.name}
+          {title ?? tenant.group.name}
         </Typography>
         {onCartClick && (
           <IconButton color="inherit" aria-label="Ver carrito" onClick={onCartClick}>
