@@ -30,7 +30,7 @@ function initFirebase(config) {
       body,
       icon,
       image,
-      badge: "/icon-192x192.png",
+      badge: tenantIcon,
       vibrate: [100, 50, 100],
       data: { url },
     });
@@ -90,7 +90,7 @@ self.addEventListener("push", (event) => {
       body,
       icon,
       image,
-      badge: "/icon-192x192.png",
+      badge: tenantIcon,
       vibrate: [100, 50, 100],
       data: { url },
     })

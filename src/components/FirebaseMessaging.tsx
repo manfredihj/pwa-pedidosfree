@@ -82,7 +82,7 @@ export default function FirebaseMessaging({ topics, idgroup, tenantIcon, childre
     const unsubscribe = onForegroundMessage((payload) => {
       const data = (payload as { notification?: { title?: string; body?: string } }).notification;
       if (data?.title) {
-        new Notification(data.title, { body: data.body || "" });
+        new Notification(data.title, { body: data.body || "", icon: tenantIcon });
       }
     });
     return () => { unsubscribe?.(); };
