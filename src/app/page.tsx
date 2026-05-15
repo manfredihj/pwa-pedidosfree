@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import AppShell from "@/components/AppShell";
 import MultiEntityShell from "@/components/MultiEntityShell";
 import Providers from "@/components/Providers";
 import { getTenant } from "@/lib/tenant";
 import { getEntitySections } from "@/lib/api";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await getTenant();
+  return {
+    title: tenant.group.name,
+    description: `Pedí online en ${tenant.group.name}`,
+  };
+}
 
 export default async function Page() {
   const tenant = await getTenant();
