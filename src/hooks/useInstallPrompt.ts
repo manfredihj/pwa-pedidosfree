@@ -11,6 +11,7 @@ export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
 
   useEffect(() => {
     // Check if already installed
@@ -20,6 +21,9 @@ export function useInstallPrompt() {
     // Detect iOS
     const ua = navigator.userAgent;
     setIsIOS(/iphone|ipad|ipod/i.test(ua) && !(window as unknown as Record<string, unknown>).MSStream);
+
+    // Detect in-app browsers (Instagram, Facebook, TikTok, etc.)
+    setIsInAppBrowser(/FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat/i.test(ua));
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -52,6 +56,7 @@ export function useInstallPrompt() {
     canInstall: !!deferredPrompt && !isInstalled,
     isInstalled,
     isIOS,
+    isInAppBrowser,
     installApp,
   };
 }
